@@ -151,6 +151,7 @@ class BottleNeck(nn.Module):
             return output, indices
         return output
 
+
 ENCODER_LAYER_NAMES = ['initial', 'bottleneck_1_0', 'bottleneck_1_1',
                        'bottleneck_1_2', 'bottleneck_1_3', 'bottleneck_1_4',
                        'bottleneck_2_0', 'bottleneck_2_1', 'bottleneck_2_2',
@@ -173,7 +174,7 @@ class Encoder(nn.Module):
                                  downsampling=True))
         for i in range(4):
             layers.append(BottleNeck(64, 64, regularlizer_prob=0.01))
-        
+
         # Section 2 and 3
         layers.append(BottleNeck(64, 128, downsampling=True))
         for i in range(2):
@@ -193,7 +194,6 @@ class Encoder(nn.Module):
             super(Encoder, self).__setattr__(layer_name, layer)
         self.layers = layers
 
-    
     def forward(self, input):
         pooling_stack = []
         output = input
@@ -205,7 +205,8 @@ class Encoder(nn.Module):
                 output = layer(output)
 
         if self.state:
-            output = F.upsample(output, cfg.TRAIN.IMG_SIZE, None, 'bilinear')
+            output = F.interpolate(
+                output, cfg.TRAIN.IMG_SIZE, None, 'bilinear')
 
         return output, pooling_stack
 
@@ -225,7 +226,7 @@ class Decoder(nn.Module):
         layers.append(nn.ConvTranspose2d(16, num_classes, 2, stride=2))
 
         self.layers = nn.ModuleList([layer for layer in layers])
-    
+
     def forward(self, input, pooling_stack):
         output = input
         for layer in self.layers:
@@ -241,7 +242,7 @@ class ENet(nn.Module):
     def __init__(self, only_encode=False):
         super(ENet, self).__init__()
         self.state = only_encode
-        self.encoder = Encoder(cfg.DATA.NUM_CLASSES,only_encode=only_encode)
+        self.encoder = Encoder(cfg.DATA.NUM_CLASSES, only_encode=only_encode)
         self.decoder = Decoder(cfg.DATA.NUM_CLASSES)
 
     def forward(self, input):
