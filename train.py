@@ -1,5 +1,7 @@
 import os
 import random
+from datetime import datetime
+
 
 import torch
 from torch import optim
@@ -59,16 +61,27 @@ def main():
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
     scheduler = StepLR(optimizer, step_size=cfg.TRAIN.NUM_EPOCH_LR_DECAY, gamma=cfg.TRAIN.LR_DECAY)
     _t = {'train time' : Timer(),'val time' : Timer()} 
+    print("base line validation:")
     validate(val_loader, net, criterion, optimizer, -1, restore_transform)
+
+    print("===========================================================")
+    print(f'start training at=> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    all_iou = []
     for epoch in range(cfg.TRAIN.MAX_EPOCH):
         _t['train time'].tic()
         train(train_loader, net, criterion, optimizer, epoch)
         _t['train time'].toc(average=False)
-        print('training time of one epoch: {:.2f}s'.format(_t['train time'].diff))
+        print('Epoch {} - Training time: {:.2f}s'.format(epoch+1, _t['train time'].diff))
+        
         _t['val time'].tic()
-        validate(val_loader, net, criterion, optimizer, epoch, restore_transform)
+        iu = validate(val_loader, net, criterion, optimizer, epoch, restore_transform)
+        all_iou.append(iu)
         _t['val time'].toc(average=False)
-        print('val time of one epoch: {:.2f}s'.format(_t['val time'].diff))
+        print('Epoch {} - Validation time: {:.2f}s'.format(epoch+1, _t['val time'].diff))
+
+    result = calculate_average(all_iou)
+    print("Average IoU:", result)
+
 
 
 def train(train_loader, net, criterion, optimizer, epoch):
@@ -82,7 +95,6 @@ def train(train_loader, net, criterion, optimizer, epoch):
         loss = criterion(outputs, labels.unsqueeze(1).float())
         loss.backward()
         optimizer.step()
-
 
 def validate(val_loader, net, criterion, optimizer, epoch, restore):
     net.eval()
@@ -103,10 +115,10 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
 
         iou_ += calculate_mean_iu([outputs.squeeze_(1).data.cpu().numpy()], [labels.data.cpu().numpy()], 2)
     mean_iu = iou_/len(val_loader)   
-
     print('[mean iu %.4f]' % (mean_iu)) 
     net.train()
     criterion.cuda()
+    return mean_iu
 
 
 if __name__ == '__main__':

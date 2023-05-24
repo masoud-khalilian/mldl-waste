@@ -89,3 +89,11 @@ def scores(label_trues, label_preds, n_class):
             'Mean Acc : \t': acc_cls,
             'FreqW Acc : \t': fwavacc,
             'Mean IoU : \t': mean_iu,}, cls_iu
+
+def calculate_average(numbers):
+    if not numbers:
+        return None  # Return None for an empty array
+    
+    total = sum(numbers)
+    average = total / len(numbers)
+    return average
