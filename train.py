@@ -1,7 +1,7 @@
 import os
 import random
 from datetime import datetime
-
+from ptflops import get_model_complexity_info
 
 import torch
 from torch import optim
@@ -61,6 +61,7 @@ def main():
         net = net.cuda()
 
     net.train()
+
     criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR,
                            weight_decay=cfg.TRAIN.WEIGHT_DECAY)
@@ -92,7 +93,10 @@ def main():
     result = calculate_average(all_iou)
     print("Average IoU:", result)
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
-
+    macs, params = get_model_complexity_info(net, (3, 224, 448), as_strings=True,
+                                           print_per_layer_stat=True, verbose=True)
+    print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+    print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
 def train(train_loader, net, criterion, optimizer, epoch):
     for i, data in enumerate(train_loader, 0):
