@@ -51,6 +51,9 @@ def main():
     elif cfg.TRAIN.STAGE =='encoder':
         net = ENet(only_encode=True)
 
+    num_params = net.count_parameters()
+    print("Number of parameters:", num_params)
+
     if len(cfg.TRAIN.GPU_ID)>1:
         net = torch.nn.DataParallel(net, device_ids=cfg.TRAIN.GPU_ID).cuda()
     else:

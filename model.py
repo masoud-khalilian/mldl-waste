@@ -250,3 +250,6 @@ class ENet(nn.Module):
         if not self.state:
             output = self.decoder(output, pooling_stack)
         return output
+        
+    def count_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)    
