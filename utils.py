@@ -5,12 +5,15 @@ from PIL import Image
 import os
 import shutil
 from config import cfg
+from datetime import datetime
+
 
 def weights_init_kaiming(m):
     if isinstance(m, nn.Conv2d):
-        #kaiming is first name of author whose last name is 'He' lol
-        nn.init.kaiming_uniform(m.weight) 
+        # kaiming is first name of author whose last name is 'He' lol
+        nn.init.kaiming_uniform(m.weight)
         m.bias.data.zero_()
+
 
 def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):
     """Sets the learning rate to the initially 
@@ -18,6 +21,7 @@ def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):
     new_lr = lr * (decay ** (cur_epoch // n_epochs))
     for param_group in optimizer.param_groups:
         param_group['lr'] = new_lr
+
 
 def calculate_mean_iu(predictions, gts, num_classes):
     sum_iu = 0
@@ -31,6 +35,7 @@ def calculate_mean_iu(predictions, gts, num_classes):
     mean_iu = sum_iu / num_classes
     return mean_iu
 
+
 class CrossEntropyLoss2d(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(CrossEntropyLoss2d, self).__init__()
@@ -39,14 +44,17 @@ class CrossEntropyLoss2d(nn.Module):
     def forward(self, inputs, targets):
         return self.nll_loss(F.log_softmax(inputs), targets)
 
+
 def rmrf_mkdir(dir_name):
     if os.path.exists(dir_name):
         shutil.rmtree(dir_name)
     os.mkdir(dir_name)
 
+
 def rm_file(path_file):
     if os.path.exists(path_file):
         os.remove(path_file)
+
 
 def colorize_mask(mask):
     # mask: numpy array of the mask
@@ -55,7 +63,7 @@ def colorize_mask(mask):
 
     return new_mask
 
-#============================
+# ============================
 
 
 def _fast_hist(label_true, label_pred, n_class):
@@ -88,12 +96,30 @@ def scores(label_trues, label_preds, n_class):
     return {'Overall Acc: \t': acc,
             'Mean Acc : \t': acc_cls,
             'FreqW Acc : \t': fwavacc,
-            'Mean IoU : \t': mean_iu,}, cls_iu
+            'Mean IoU : \t': mean_iu, }, cls_iu
+
 
 def calculate_average(numbers):
     if not numbers:
         return None  # Return None for an empty array
-    
+
     total = sum(numbers)
     average = total / len(numbers)
     return average
+
+
+def save_model_with_timestamp(model, model_dir):
+    # Get the current timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+
+    # Generate the model file name with the timestamp
+    model_name = f'trained_model_{timestamp}.pth'
+    model_path = os.path.join(model_dir, model_name)
+
+    # Save the model
+    nn.save(model.state_dict(), model_path)
+    print("Trained model saved at:", model_path)
+
+    # Calculate the model size in MB
+    model_size_mb = os.path.getsize(model_path) / (1024 * 1024)
+    print("Model size:", model_size_mb, "MB")

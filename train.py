@@ -22,25 +22,26 @@ import pdb
 
 exp_name = cfg.TRAIN.EXP_NAME
 log_txt = cfg.TRAIN.EXP_LOG_PATH + '/' + exp_name + '.txt'
-writer = SummaryWriter(cfg.TRAIN.EXP_PATH+ '/' + exp_name)
+writer = SummaryWriter(cfg.TRAIN.EXP_PATH + '/' + exp_name)
 
 pil_to_tensor = standard_transforms.ToTensor()
 train_loader, val_loader, restore_transform = loading_data()
 
+
 def main():
 
-    cfg_file = open('./config.py',"r")  
+    cfg_file = open('./config.py', "r")
     cfg_lines = cfg_file.readlines()
-    
+
     with open(log_txt, 'a') as f:
-            f.write(''.join(cfg_lines) + '\n\n\n\n')
-    if len(cfg.TRAIN.GPU_ID)==1:
+        f.write(''.join(cfg_lines) + '\n\n\n\n')
+    if len(cfg.TRAIN.GPU_ID) == 1:
         torch.cuda.set_device(cfg.TRAIN.GPU_ID[0])
     torch.backends.cudnn.benchmark = True
 
-    net = []   
-    
-    if cfg.TRAIN.STAGE=='all':
+    net = []
+
+    if cfg.TRAIN.STAGE == 'all':
         net = ENet(only_encode=False)
         if cfg.TRAIN.PRETRAINED_ENCODER != '':
             encoder_weight = torch.load(cfg.TRAIN.PRETRAINED_ENCODER)
@@ -48,43 +49,49 @@ def main():
             del encoder_weight['classifier.weight']
             # pdb.set_trace()
             net.encoder.load_state_dict(encoder_weight)
-    elif cfg.TRAIN.STAGE =='encoder':
+    elif cfg.TRAIN.STAGE == 'encoder':
         net = ENet(only_encode=True)
 
     num_params = net.count_parameters()
     print("Number of parameters:", num_params)
 
-    if len(cfg.TRAIN.GPU_ID)>1:
+    if len(cfg.TRAIN.GPU_ID) > 1:
         net = torch.nn.DataParallel(net, device_ids=cfg.TRAIN.GPU_ID).cuda()
     else:
-        net=net.cuda()
+        net = net.cuda()
 
     net.train()
-    criterion = torch.nn.BCEWithLogitsLoss().cuda() # Binary Classification
-    optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
-    scheduler = StepLR(optimizer, step_size=cfg.TRAIN.NUM_EPOCH_LR_DECAY, gamma=cfg.TRAIN.LR_DECAY)
-    _t = {'train time' : Timer(),'val time' : Timer()} 
+    criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
+    optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR,
+                           weight_decay=cfg.TRAIN.WEIGHT_DECAY)
+    scheduler = StepLR(
+        optimizer, step_size=cfg.TRAIN.NUM_EPOCH_LR_DECAY, gamma=cfg.TRAIN.LR_DECAY)
+    _t = {'train time': Timer(), 'val time': Timer()}
     print("base line validation:")
     validate(val_loader, net, criterion, optimizer, -1, restore_transform)
 
     print("===========================================================")
-    print(f'start training at=> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    print(
+        f'start training at=> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     all_iou = []
     for epoch in range(cfg.TRAIN.MAX_EPOCH):
         _t['train time'].tic()
         train(train_loader, net, criterion, optimizer, epoch)
         _t['train time'].toc(average=False)
-        print('Epoch {} - Training time: {:.2f}s'.format(epoch+1, _t['train time'].diff))
-        
+        print('Epoch {} - Training time: {:.2f}s'.format(epoch +
+              1, _t['train time'].diff))
+
         _t['val time'].tic()
-        iu = validate(val_loader, net, criterion, optimizer, epoch, restore_transform)
+        iu = validate(val_loader, net, criterion,
+                      optimizer, epoch, restore_transform)
         all_iou.append(iu)
         _t['val time'].toc(average=False)
-        print('Epoch {} - Validation time: {:.2f}s'.format(epoch+1, _t['val time'].diff))
+        print('Epoch {} - Validation time: {:.2f}s'.format(epoch +
+              1, _t['val time'].diff))
 
     result = calculate_average(all_iou)
     print("Average IoU:", result)
-
+    save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
 
 
 def train(train_loader, net, criterion, optimizer, epoch):
@@ -92,12 +99,13 @@ def train(train_loader, net, criterion, optimizer, epoch):
         inputs, labels = data
         inputs = Variable(inputs).cuda()
         labels = Variable(labels).cuda()
-   
+
         optimizer.zero_grad()
         outputs = net(inputs)
         loss = criterion(outputs, labels.unsqueeze(1).float())
         loss.backward()
         optimizer.step()
+
 
 def validate(val_loader, net, criterion, optimizer, epoch, restore):
     net.eval()
@@ -117,7 +125,8 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
             outputs[outputs <= 0.5] = 0
             # For multi-classification ???
 
-            iou_ += calculate_mean_iu([outputs.squeeze_(1).data.cpu().numpy()], [labels.data.cpu().numpy()], 2)
+            iou_ += calculate_mean_iu([outputs.squeeze_(1).data.cpu().numpy()], [
+                                      labels.data.cpu().numpy()], 2)
     mean_iu = iou_/len(val_loader)
     print('[mean iu %.4f]' % (mean_iu))
     net.train()
@@ -125,14 +134,5 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
     return mean_iu
 
 
-
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-
