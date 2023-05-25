@@ -1,4 +1,4 @@
-from torch import nn
+from torch import nn, save
 import torch.nn.functional as F
 import numpy as np
 from PIL import Image
@@ -117,7 +117,7 @@ def save_model_with_timestamp(model, model_dir):
     model_path = os.path.join(model_dir, model_name)
 
     # Save the model
-    nn.save(model.state_dict(), model_path)
+    save(model.state_dict(), model_path)
     print("Trained model saved at:", model_path)
 
     # Calculate the model size in MB
