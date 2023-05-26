@@ -52,9 +52,6 @@ def main():
     elif cfg.TRAIN.STAGE == 'encoder':
         net = ENet(only_encode=True)
 
-    num_params = net.count_parameters()
-    print("Number of parameters:", num_params)
-
     if len(cfg.TRAIN.GPU_ID) > 1:
         net = torch.nn.DataParallel(net, device_ids=cfg.TRAIN.GPU_ID).cuda()
     else:
@@ -94,8 +91,8 @@ def main():
     print("Average IoU:", result)
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = get_model_complexity_info(net, (3, 224, 448), as_strings=True,
-                                           print_per_layer_stat=True, verbose=True)
-    print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+                                           print_per_layer_stat=False, verbose=False)
+    print('{:<30}  {:<8}'.format('GFLOPS: ', float(macs.replace(" MMac",""))*0.002))
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
 def train(train_loader, net, criterion, optimizer, epoch):
