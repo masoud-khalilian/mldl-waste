@@ -114,7 +114,7 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
     output_batches = []
     label_batches = []
     iou_ = 0.0
-    with torch.no_grad():
+    with torch.inference_mode():
         for vi, data in enumerate(val_loader, 0):
             inputs, labels = data
             inputs = inputs.cuda()
