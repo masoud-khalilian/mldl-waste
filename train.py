@@ -1,7 +1,7 @@
 import os
 import random
 from datetime import datetime
-
+from ptflops import get_model_complexity_info
 
 import torch
 from torch import optim
@@ -52,15 +52,13 @@ def main():
     elif cfg.TRAIN.STAGE == 'encoder':
         net = ENet(only_encode=True)
 
-    num_params = net.count_parameters()
-    print("Number of parameters:", num_params)
-
     if len(cfg.TRAIN.GPU_ID) > 1:
         net = torch.nn.DataParallel(net, device_ids=cfg.TRAIN.GPU_ID).cuda()
     else:
         net = net.cuda()
 
     net.train()
+
     criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR,
                            weight_decay=cfg.TRAIN.WEIGHT_DECAY)
@@ -92,7 +90,10 @@ def main():
     result = calculate_average(all_iou)
     print("Average IoU:", result)
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
-
+    macs, params = get_model_complexity_info(net, (3, 224, 448), as_strings=True,
+                                           print_per_layer_stat=False, verbose=False)
+    print('{:<30}  {:<8}'.format('GFLOPS: ', float(macs.replace(" MMac",""))*0.002))
+    print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
 def train(train_loader, net, criterion, optimizer, epoch):
     for i, data in enumerate(train_loader, 0):
