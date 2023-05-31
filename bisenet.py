@@ -15,14 +15,18 @@ class ConvBnRelu(nn.Module):
                               dilation=dilation, groups=groups, bias=has_bias)
         self.has_bn = has_bn
         if self.has_bn:
-            self.bn = norm_layer(out_planes, eps=bn_eps)
+            self.bn = norm_layer(out_planes, eps=bn_eps).cuda()
         self.has_relu = has_relu
         if self.has_relu:
             self.relu = nn.ReLU(inplace=inplace)
 
     def forward(self, x):
+        x = x.cuda()
+        self.conv = self.conv.cuda()  # Convert the convolution layer to CUDA format
         x = self.conv(x)
         if self.has_bn:
+            self.bn = self.bn.cuda()  # Convert the batch normalization layer to CUDA format
+
             x = self.bn(x)
         if self.has_relu:
             x = self.relu(x)
@@ -80,6 +84,7 @@ class BiSeNetHead(nn.Module):
     def forward(self, x):
         fm = self.conv_3x3(x)
         # fm = self.dropout(fm)
+        self.conv_1x1 = self.conv_1x1.cuda()
         output = self.conv_1x1(fm)
         if self.scale > 1:
             output = F.interpolate(output, scale_factor=self.scale,
@@ -300,4 +305,4 @@ class BiSeNet(nn.Module):
         else:
             out = self.heads[-1](pred_out[-1])
             output.append(out)
-        return output
+        return output[0]  # this surely must be wrong
