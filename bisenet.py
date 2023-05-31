@@ -61,24 +61,19 @@ class FeatureFusion(nn.Module):
 
 
 class BiSeNetHead(nn.Module):
-    def __init__(self, in_planes, out_planes, scale,
-                 is_aux=False, norm_layer=nn.BatchNorm2d):
+    def __init__(self, in_planes, out_planes, scale, is_aux=False, norm_layer=nn.BatchNorm2d):
         super(BiSeNetHead, self).__init__()
         if is_aux:
-            self.conv_3x3 = ConvBnRelu(in_planes, 128, 3, 1, 1,
-                                       has_bn=True, norm_layer=norm_layer,
-                                       has_relu=True, has_bias=False)
+            self.conv_3x3 = ConvBnRelu(in_planes, 128, 3, 1, 1, has_bn=True, norm_layer=norm_layer, has_relu=True,
+                                       has_bias=False)
         else:
-            self.conv_3x3 = ConvBnRelu(in_planes, 64, 3, 1, 1,
-                                       has_bn=True, norm_layer=norm_layer,
-                                       has_relu=True, has_bias=False)
+            self.conv_3x3 = ConvBnRelu(in_planes, 64, 3, 1, 1, has_bn=True, norm_layer=norm_layer, has_relu=True,
+                                       has_bias=False)
         # self.dropout = nn.Dropout(0.1)
         if is_aux:
-            self.conv_1x1 = nn.Conv2d(128, out_planes, kernel_size=1,
-                                      stride=1, padding=0)
+            self.conv_1x1 = nn.Conv2d(128, out_planes, kernel_size=1, stride=1, padding=0)
         else:
-            self.conv_1x1 = nn.Conv2d(64, out_planes, kernel_size=1,
-                                      stride=1, padding=0)
+            self.conv_1x1 = nn.Conv2d(64, out_planes, kernel_size=1, stride=1, padding=0)
         self.scale = scale
 
     def forward(self, x):
@@ -214,11 +209,11 @@ class Xception(nn.Module):
         layers = []
         has_proj = True if stride > 1 else False
         layers.append(block(self.in_channels, mid_out_channels,
-                      has_proj, stride=stride, norm_layer=norm_layer))
+                            has_proj, stride=stride, norm_layer=norm_layer))
         self.in_channels = mid_out_channels * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.in_channels, mid_out_channels,
-                          has_proj=False, stride=1, norm_layer=norm_layer))
+                                has_proj=False, stride=1, norm_layer=norm_layer))
 
         return nn.Sequential(*layers)
 
@@ -264,8 +259,7 @@ class BiSeNet(nn.Module):
                        has_bias=False)]
 
         self.heads = [BiSeNetHead(conv_channel, num_classes, 16, True, norm_layer),
-                      BiSeNetHead(conv_channel, num_classes,
-                                  8, True, norm_layer),
+                      BiSeNetHead(conv_channel, num_classes, 8, True, norm_layer),
                       BiSeNetHead(conv_channel * 2, num_classes, 8, False, norm_layer)]
 
         self.ffm = FeatureFusion(
@@ -305,4 +299,4 @@ class BiSeNet(nn.Module):
         else:
             out = self.heads[-1](pred_out[-1])
             output.append(out)
-        return output[0]  # this surely must be wrong
+        return output[-1]  # this surely must be wrong
