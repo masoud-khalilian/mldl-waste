@@ -239,7 +239,7 @@ class Decoder(nn.Module):
 
 
 class ENet(nn.Module):
-    def __init__(self, only_encode=False):
+    def __init__(self, only_encode=cfg.TRAIN.STAGE == 'encoder'):
         super(ENet, self).__init__()
         self.state = only_encode
         self.encoder = Encoder(cfg.DATA.NUM_CLASSES, only_encode=only_encode)
@@ -250,6 +250,6 @@ class ENet(nn.Module):
         if not self.state:
             output = self.decoder(output, pooling_stack)
         return output
-        
+
     def count_parameters(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)    
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)

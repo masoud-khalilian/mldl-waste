@@ -3,6 +3,7 @@
 
 from torch import nn, cat
 import torch.nn.functional as F
+from config import cfg
 
 
 class ConvBnRelu(nn.Module):
@@ -71,9 +72,11 @@ class BiSeNetHead(nn.Module):
                                        has_bias=False)
         # self.dropout = nn.Dropout(0.1)
         if is_aux:
-            self.conv_1x1 = nn.Conv2d(128, out_planes, kernel_size=1, stride=1, padding=0)
+            self.conv_1x1 = nn.Conv2d(
+                128, out_planes, kernel_size=1, stride=1, padding=0)
         else:
-            self.conv_1x1 = nn.Conv2d(64, out_planes, kernel_size=1, stride=1, padding=0)
+            self.conv_1x1 = nn.Conv2d(
+                64, out_planes, kernel_size=1, stride=1, padding=0)
         self.scale = scale
 
     def forward(self, x):
@@ -239,7 +242,7 @@ def load_xception39():
 
 
 class BiSeNet(nn.Module):
-    def __init__(self, num_classes, norm_layer=nn.BatchNorm2d):
+    def __init__(self, num_classes=cfg.DATA.NUM_CLASSES, norm_layer=nn.BatchNorm2d):
         super(BiSeNet, self).__init__()
 
         self.context_path = load_xception39()
@@ -259,7 +262,8 @@ class BiSeNet(nn.Module):
                        has_bias=False)]
 
         self.heads = [BiSeNetHead(conv_channel, num_classes, 16, True, norm_layer),
-                      BiSeNetHead(conv_channel, num_classes, 8, True, norm_layer),
+                      BiSeNetHead(conv_channel, num_classes,
+                                  8, True, norm_layer),
                       BiSeNetHead(conv_channel * 2, num_classes, 8, False, norm_layer)]
 
         self.ffm = FeatureFusion(
