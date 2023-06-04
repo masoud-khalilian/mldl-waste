@@ -13,7 +13,6 @@ import torchvision.transforms as standard_transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 
-from model import ENet
 from config import cfg
 from loading_data import loading_data
 from utils import *
@@ -41,16 +40,16 @@ def main():
 
     net = []
 
-    if cfg.TRAIN.STAGE == 'all':
-        net = ENet(only_encode=False)
-        if cfg.TRAIN.PRETRAINED_ENCODER != '':
-            encoder_weight = torch.load(cfg.TRAIN.PRETRAINED_ENCODER)
-            del encoder_weight['classifier.bias']
-            del encoder_weight['classifier.weight']
-            # pdb.set_trace()
-            net.encoder.load_state_dict(encoder_weight)
-    elif cfg.TRAIN.STAGE == 'encoder':
-        net = ENet(only_encode=True)
+    net = selectModel(cfg.MODEL.NAME)
+
+    # if cfg.TRAIN.STAGE == 'all':
+    #     net = ENet(only_encode=False)
+    #     if cfg.TRAIN.PRETRAINED_ENCODER != '':
+    #         encoder_weight = torch.load(cfg.TRAIN.PRETRAINED_ENCODER)
+    #         del encoder_weight['classifier.bias']
+    #         del encoder_weight['classifier.weight']
+    #         # pdb.set_trace()
+    #         net.encoder.load_state_dict(encoder_weight)
 
     if len(cfg.TRAIN.GPU_ID) > 1:
         net = torch.nn.DataParallel(net, device_ids=cfg.TRAIN.GPU_ID).cuda()
@@ -91,9 +90,11 @@ def main():
     print("Average IoU:", result)
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = get_model_complexity_info(net, (3, 224, 448), as_strings=True,
-                                           print_per_layer_stat=False, verbose=False)
-    print('{:<30}  {:<8}'.format('GFLOPS: ', float(macs.replace(" MMac",""))*0.002))
+                                             print_per_layer_stat=False, verbose=False)
+    print('{:<30}  {:<8}'.format('GFLOPS: ',
+          float(macs.replace(" MMac", ""))*0.002))
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+
 
 def train(train_loader, net, criterion, optimizer, epoch):
     for i, data in enumerate(train_loader, 0):

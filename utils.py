@@ -6,6 +6,9 @@ import os
 import shutil
 from config import cfg
 from datetime import datetime
+from model_bisenet import BiSeNet
+from model_enet import ENet
+from model_icnet import ICNet
 
 
 def weights_init_kaiming(m):
@@ -123,3 +126,14 @@ def save_model_with_timestamp(model, model_dir):
     # Calculate the model size in MB
     model_size_mb = os.path.getsize(model_path) / (1024 * 1024)
     print("Model size:", model_size_mb, "MB")
+
+
+def selectModel(model_name):
+    options = {
+        'icnet': ICNet,  # Replace ICNet with the actual class name
+        'bisenet': BiSeNet,  # Replace BiSeNet with the actual class name
+        'enet': ENet  # Replace ENet with the actual class name
+    }
+
+    model = options[model_name]()
+    return model
