@@ -58,7 +58,11 @@ def main():
 
     net.train()
 
-    criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
+    if cfg.DATA.NUM_CLASSES == 1:
+        criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
+    else:
+        criterion = torch.nn.CrossEntropyLoss().cuda()  # Multiclass Classification
+
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR,
                            weight_decay=cfg.TRAIN.WEIGHT_DECAY)
     scheduler = StepLR(
@@ -104,7 +108,12 @@ def train(train_loader, net, criterion, optimizer, epoch):
 
         optimizer.zero_grad()
         outputs = net(inputs)
-        loss = criterion(outputs, labels.unsqueeze(1).float())
+
+        if cfg.DATA.NUM_CLASSES == 1:
+            loss = criterion(outputs, labels.unsqueeze(1).float())
+        else:
+            loss = criterion(outputs, labels.long())
+
         loss.backward()
         optimizer.step()
 
@@ -122,13 +131,20 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
             inputs = inputs.cuda()
             labels = labels.cuda()
             outputs = net(inputs)
-            # For binary classification
-            outputs[outputs > 0.5] = 1
-            outputs[outputs <= 0.5] = 0
-            # For multi-classification ???
+            if cfg.DATA.NUM_CLASSES == 1:
+                # For binary classification
+                outputs[outputs > 0.5] = 1
+                outputs[outputs <= 0.5] = 0
+                iou_ += calculate_mean_iu([outputs.squeeze_(1).data.cpu().numpy()],
+                                          [labels.data.cpu().numpy()],
+                                          cfg.DATA.NUM_CLASSES)
+            else:
+                # For multi-classification ???
+                _, predicted = outputs.max(1)
+                res, cls_iu = scores([predicted.data.cpu()], [
+                                     labels.data.cpu()], cfg.DATA.NUM_CLASSES)
+                iou_ += res['Mean IoU : \t']
 
-            iou_ += calculate_mean_iu([outputs.squeeze_(1).data.cpu().numpy()], [
-                                      labels.data.cpu().numpy()], 2)
     mean_iu = iou_/len(val_loader)
     print('[mean iu %.4f]' % (mean_iu))
     net.train()
