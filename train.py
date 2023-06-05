@@ -140,10 +140,12 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                                           cfg.DATA.NUM_CLASSES)
             else:
                 # For multi-classification ???
-                _, predicted = outputs.max(1)
-                res, cls_iu = scores([predicted.data.cpu()], [
-                                     labels.data.cpu()], cfg.DATA.NUM_CLASSES)
+                _, predicted = torch.max(outputs, 1)
+                pred = predicted.data.cpu().numpy()
+                leb = labels.data.cpu().numpy()
+                res, cls_iu = scores([pred], [leb], cfg.DATA.NUM_CLASSES)
                 iou_ += res['Mean IoU : \t']
+                # print(cls_iu)
 
     mean_iu = iou_/len(val_loader)
     print('[mean iu %.4f]' % (mean_iu))
