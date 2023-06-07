@@ -105,14 +105,12 @@ def train(train_loader, net, criterion, optimizer, epoch):
         inputs, labels = data
         inputs = Variable(inputs).cuda()
         labels = Variable(labels).cuda()
-
         optimizer.zero_grad()
         outputs = net(inputs)
-
         if cfg.DATA.NUM_CLASSES == 1:
             loss = criterion(outputs, labels.unsqueeze(1).float())
         else:
-            loss = criterion(outputs, labels.long())
+            loss = criterion(outputs, labels)
 
         loss.backward()
         optimizer.step()
@@ -143,7 +141,7 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 _, predicted = torch.max(outputs, 1)
                 pred = predicted.data.cpu().numpy()
                 leb = labels.data.cpu().numpy()
-                res, cls_iu = scores([pred], [leb], cfg.DATA.NUM_CLASSES)
+                res, cls_iu = scores([leb],[pred], cfg.DATA.NUM_CLASSES)
                 iou_ += res['Mean IoU : \t']
                 # print(cls_iu)
 
