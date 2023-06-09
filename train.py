@@ -117,6 +117,7 @@ def train(train_loader, net, criterion, optimizer, epoch):
 
 
 def validate(val_loader, net, criterion, optimizer, epoch, restore):
+    cls_ius = np.zeros(4)   #Createing an array of zeroes to add all the ius for each class
     net.eval()
     criterion.cpu()
     input_batches = []
@@ -144,7 +145,13 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 res, cls_iu = scores([leb],[pred], cfg.DATA.NUM_CLASSES)
                 iou_ += res['Mean IoU : \t']
                 # print(cls_iu)
-
+                for i in range(4):
+                    cls_ius[i] += cls_iu[i]         #sum the iu of all classes seperately
+    cls_ius = cls_ius / len(val_loader)  #Out of loop ---> calcualte average by deviding by the entire loop length
+    print("------------------------------------------------------")
+    print("|    paper   |   bottle   |  aluminium  |   Nylon    |")
+    print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |" % (cls_ius[0],cls_ius[1],cls_ius[2],cls_ius[3]) )       #fancy printing the ius seperately for each class
+    print("------------------------------------------------------")
     mean_iu = iou_/len(val_loader)
     print('[mean iu %.4f]' % (mean_iu))
     net.train()
