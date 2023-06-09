@@ -147,11 +147,12 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 # print(cls_iu)
                 for i in range(4):
                     cls_ius[i] += cls_iu[i]         #sum the iu of all classes seperately
-    cls_ius = cls_ius / len(val_loader)  #Out of loop ---> calcualte average by deviding by the entire loop length
-    print("------------------------------------------------------")
-    print("|    paper   |   bottle   |  aluminium  |   Nylon    |")
-    print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |" % (cls_ius[0],cls_ius[1],cls_ius[2],cls_ius[3]) )       #fancy printing the ius seperately for each class
-    print("------------------------------------------------------")
+    if cfg.DATA.NUM_CLASSES != 1:
+        cls_ius = cls_ius / len(val_loader)  #Out of loop ---> calcualte average by deviding by the entire loop length
+        print("------------------------------------------------------")
+        print("|    paper   |   bottle   |  aluminium  |   Nylon    |")
+        print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |" % (cls_ius[0],cls_ius[1],cls_ius[2],cls_ius[3]) )       #fancy printing the ius seperately for each class
+        print("------------------------------------------------------")
     mean_iu = iou_/len(val_loader)
     print('[mean iu %.4f]' % (mean_iu))
     net.train()
