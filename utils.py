@@ -1,3 +1,4 @@
+import torch
 from torch import nn, save
 import torch.nn.functional as F
 import numpy as np
@@ -9,6 +10,8 @@ from datetime import datetime
 from model_bisenet import BiSeNet
 from model_enet import ENet
 from model_icnet import ICNet
+from torchvision.utils import save_image
+from PIL import Image
 
 
 def weights_init_kaiming(m):
@@ -140,3 +143,29 @@ def selectModel(model_name):
 
     model = options[model_name]()
     return model
+
+
+def save_binary_visualization(inputs, labels, outputs, index):
+    os.makedirs("./vis", exist_ok=True)
+    save_image(inputs, f'./vis/input_{index}.png')
+
+    labels = add_arbitrary_rgb(labels)
+    outputs = add_arbitrary_rgb(outputs)
+    save_image(labels, f'./vis/labels_{index}.png')
+    save_image(outputs, f'./vis/outputs_{index}.png')
+
+
+def add_arbitrary_rgb(tensor):
+    expanded_tensor = tensor.unsqueeze(1).repeat(1, 3, 1, 1)
+    rgb_tensor = torch.zeros(
+        16, 3, 224, 448, dtype=torch.float32, device='cuda')
+    # Assign the original tensor as the red channel
+    rgb_tensor[:, 0, :, :] = expanded_tensor[:, 0, :, :]
+    # Assign the original tensor as the green channel
+    rgb_tensor[:, 1, :, :] = expanded_tensor[:, 0, :, :]
+    # Assign the original tensor as the blue channel
+    rgb_tensor[:, 2, :, :] = expanded_tensor[:, 0, :, :]
+    rgb_tensor[rgb_tensor != 0] = torch.clamp(
+        rgb_tensor[rgb_tensor != 0] * 255, max=255)
+
+    return rgb_tensor

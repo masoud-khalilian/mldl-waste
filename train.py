@@ -141,9 +141,13 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 _, predicted = torch.max(outputs, 1)
                 pred = predicted.data.cpu().numpy()
                 leb = labels.data.cpu().numpy()
-                res, cls_iu = scores([leb],[pred], cfg.DATA.NUM_CLASSES)
+                res, cls_iu = scores([leb], [pred], cfg.DATA.NUM_CLASSES)
                 iou_ += res['Mean IoU : \t']
                 # print(cls_iu)
+
+            # # Save visualization
+            # if vi < 3:  # Save visualization for the first 3 sets of images
+            #     save_binary_visualization(inputs, labels, outputs, vi)
 
     mean_iu = iou_/len(val_loader)
     print('[mean iu %.4f]' % (mean_iu))
