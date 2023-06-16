@@ -135,7 +135,7 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 outputs[outputs <= 0.5] = 0
                 iou_ += calculate_mean_iu([outputs.squeeze_(1).data.cpu().numpy()],
                                           [labels.data.cpu().numpy()],
-                                          cfg.DATA.NUM_CLASSES)
+                                          2)
             else:
                 # For multi-classification ???
                 _, predicted = torch.max(outputs, 1)
