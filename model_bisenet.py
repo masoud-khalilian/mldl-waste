@@ -2,7 +2,6 @@
 # code from https://github.com/PaddlePaddle/PaddleSeg/blob/release/2.8/paddleseg/models/bisenetv1.py
 
 from torch import nn, cat
-import torch.nn.functional as F
 from config import cfg
 
 
@@ -22,11 +21,11 @@ class ConvBnRelu(nn.Module):
             self.relu = nn.ReLU(inplace=inplace)
 
     def forward(self, x):
-        x = x.cuda()
+
         self.conv = self.conv.cuda()  # Convert the convolution layer to CUDA format
         x = self.conv(x)
         if self.has_bn:
-            self.bn = self.bn.cuda()  # Convert the batch normalization layer to CUDA format
+              # Convert the batch normalization layer to CUDA format
 
             x = self.bn(x)
         if self.has_relu:
@@ -85,10 +84,8 @@ class BiSeNetHead(nn.Module):
         self.conv_1x1 = self.conv_1x1.cuda()
         output = self.conv_1x1(fm)
         if self.scale > 1:
-            output = F.interpolate(output, scale_factor=self.scale,
-                                   mode='bilinear',
-                                   align_corners=True)
-
+            upsample = nn.Upsample(scale_factor=self.scale, mode='bilinear', align_corners=True)
+            output = upsample(output)
         return output
 
 
@@ -246,7 +243,7 @@ class BiSeNet(nn.Module):
         super(BiSeNet, self).__init__()
 
         self.context_path = load_xception39()
-        self.spatial_path = SpatialPath(3, 128, norm_layer)
+        self.spatial_path = SpatialPath(3, 128, norm_layer).cuda()
         conv_channel = 128
         self.global_context = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
@@ -275,19 +272,16 @@ class BiSeNet(nn.Module):
         context_blocks.reverse()
 
         global_context = self.global_context(context_blocks[0])
-        global_context = F.interpolate(
-            global_context,
-            size=context_blocks[0].size()[2:],
-            mode='bilinear',
-            align_corners=True)
+        upsample = nn.Upsample(size=context_blocks[0].size()[2:], mode='bilinear', align_corners=True)
+        global_context = upsample(global_context)
         last_fm = global_context
         pred_out = []
 
         for i, (fm, arm, refine) in enumerate(zip(context_blocks[:2], self.arms, self.refines)):
             fm = arm(fm)
             fm += last_fm
-            last_fm = F.interpolate(fm, size=(
-                context_blocks[i + 1].size()[2:]), mode='bilinear', align_corners=True)
+            upsample = nn.Upsample(size=context_blocks[i + 1].size()[2:], mode='bilinear', align_corners=True)
+            last_fm = upsample(fm)
             last_fm = refine(last_fm)
             pred_out.append(last_fm)
         context_out = last_fm

@@ -12,6 +12,7 @@ from torchvision.utils import save_image
 import torchvision.transforms as standard_transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
+from thop import clever_format
 
 from config import cfg
 from loading_data import loading_data
@@ -93,10 +94,9 @@ def main():
     result = calculate_average(all_iou)
     print("Average IoU:", result)
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
-    macs, params = get_model_complexity_info(net, (3, 224, 448), as_strings=True,
-                                             print_per_layer_stat=False, verbose=False)
-    print('{:<30}  {:<8}'.format('GFLOPS: ',
-          float(macs.replace(" MMac", ""))*0.002))
+    macs, params = count_your_model(net)
+    macs, params = clever_format([macs * 2 , params], "%.3f") #converted macs into flops and it only shows 3 decimal points.
+    print('{:<30}  {:<8}'.format('GFLOPS: ',macs))
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
 
