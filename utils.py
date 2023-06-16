@@ -1,5 +1,6 @@
 import torch
 from torch import nn, save
+import torch
 import torch.nn.functional as F
 import numpy as np
 from PIL import Image
@@ -12,6 +13,8 @@ from model_enet import ENet
 from model_icnet import ICNet
 from torchvision.utils import save_image
 from PIL import Image
+from thop import profile
+from torch.autograd import Variable
 
 
 def weights_init_kaiming(m):
@@ -93,13 +96,12 @@ def scores(label_trues, label_preds, n_class):
     acc = np.diag(hist).sum() / hist.sum()
     acc_cls = np.diag(hist) / hist.sum(axis=1)
     acc_cls = np.nanmean(acc_cls)
-    iu = np.nan_to_num(np.diag(hist) / (hist.sum(axis=1) +
-                       hist.sum(axis=0) - np.diag(hist)))
+    iu = np.diag(hist) / (hist.sum(axis=1) +
+                          hist.sum(axis=0) - np.diag(hist))
     mean_iu = np.nanmean(iu)
     freq = hist.sum(axis=1) / hist.sum()
     fwavacc = (freq[freq > 0] * iu[freq > 0]).sum()
     cls_iu = {i: iu[i] for i in range(n_class)}
-
     return {
         'Overall Acc: \t': acc,
         'Mean Acc : \t': acc_cls,
@@ -169,3 +171,11 @@ def add_arbitrary_rgb(tensor):
         rgb_tensor[rgb_tensor != 0] * 255, max=255)
 
     return rgb_tensor
+
+
+def count_your_model(model):
+    # your rule here
+
+    input = torch.randn(16, 3, 224, 448, device='cuda:0')
+    macs, params = profile(model, inputs=(input, ))
+    return macs, params

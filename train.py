@@ -12,6 +12,7 @@ from torchvision.utils import save_image
 import torchvision.transforms as standard_transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
+from thop import clever_format
 
 from config import cfg
 from loading_data import loading_data
@@ -93,10 +94,10 @@ def main():
     result = calculate_average(all_iou)
     print("Average IoU:", result)
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
-    macs, params = get_model_complexity_info(net, (3, 224, 448), as_strings=True,
-                                             print_per_layer_stat=False, verbose=False)
-    print('{:<30}  {:<8}'.format('GFLOPS: ',
-          float(macs.replace(" MMac", ""))*0.002))
+    macs, params = count_your_model(net)
+    # converted macs into flops and it only shows 3 decimal points.
+    macs, params = clever_format([macs * 2, params], "%.3f")
+    print('{:<30}  {:<8}'.format('GFLOPS: ', macs))
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
 
@@ -117,6 +118,8 @@ def train(train_loader, net, criterion, optimizer, epoch):
 
 
 def validate(val_loader, net, criterion, optimizer, epoch, restore):
+    # Createing an array of zeroes to add all the ius for each class
+    cls_ius = np.zeros(4)
     net.eval()
     criterion.cpu()
     input_batches = []
@@ -135,7 +138,7 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 outputs[outputs <= 0.5] = 0
                 iou_ += calculate_mean_iu([outputs.squeeze_(1).data.cpu().numpy()],
                                           [labels.data.cpu().numpy()],
-                                          cfg.DATA.NUM_CLASSES)
+                                          2)
             else:
                 # For multi-classification ???
                 _, predicted = torch.max(outputs, 1)
@@ -149,6 +152,17 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
             # if vi < 3:  # Save visualization for the first 3 sets of images
             #     save_binary_visualization(inputs, labels, outputs, vi)
 
+                for i in range(4):
+                    # sum the iu of all classes seperately
+                    cls_ius[i] += cls_iu[i]
+    if cfg.DATA.NUM_CLASSES != 1:
+        # Out of loop ---> calcualte average by deviding by the entire loop length
+        cls_ius = cls_ius / len(val_loader)
+        print("------------------------------------------------------")
+        print("|    paper   |   bottle   |  aluminium  |   Nylon    |")
+        print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |" % (
+            cls_ius[0], cls_ius[1], cls_ius[2], cls_ius[3]))  # fancy printing the ius seperately for each class
+        print("------------------------------------------------------")
     mean_iu = iou_/len(val_loader)
     print('[mean iu %.4f]' % (mean_iu))
     net.train()
