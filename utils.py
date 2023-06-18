@@ -15,6 +15,7 @@ from torchvision.utils import save_image
 from PIL import Image
 from thop import profile
 from torch.autograd import Variable
+from matplotlib import pyplot as plt
 
 
 def weights_init_kaiming(m):
@@ -25,7 +26,7 @@ def weights_init_kaiming(m):
 
 
 def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):
-    """Sets the learning rate to the initially 
+    """Sets the learning rate to the initially
         configured `lr` decayed by `decay` every `n_epochs`"""
     new_lr = lr * (decay ** (cur_epoch // n_epochs))
     for param_group in optimizer.param_groups:
@@ -72,6 +73,7 @@ def colorize_mask(mask):
 
     return new_mask
 
+
 # ============================
 
 
@@ -79,7 +81,7 @@ def _fast_hist(label_true, label_pred, n_class):
     mask = (label_true >= 0) & (label_true < n_class)
     hist = np.bincount(
         n_class * label_true[mask].astype(int) +
-        label_pred[mask], minlength=n_class**2).reshape(n_class, n_class)
+        label_pred[mask], minlength=n_class ** 2).reshape(n_class, n_class)
     return hist
 
 
@@ -177,5 +179,18 @@ def count_your_model(model):
     # your rule here
 
     input = torch.randn(16, 3, 224, 448, device='cuda:0')
-    macs, params = profile(model, inputs=(input, ))
+    macs, params = profile(model, inputs=(input,))
     return macs, params
+
+
+def visualize_multi_class(input_img):
+    input_img = np.transpose(input_img[0], (1, 2, 0))
+    input_img = input_img / np.max(input_img)
+    input_img = np.clip(input_img, 0, 1)
+    mno = 3  # Should be between 0 - n-1 | where n is the number of classes
+    figure = plt.figure(figsize=(20, 10))
+    plt.subplot(1, 3, 1)
+    plt.title('Input Image')
+    plt.axis('off')
+    plt.imshow(input_img)
+    plt.show()

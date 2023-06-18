@@ -29,7 +29,6 @@ train_loader, val_loader, restore_transform = loading_data()
 
 
 def main():
-
     cfg_file = open('./config.py', "r")
     cfg_lines = cfg_file.readlines()
 
@@ -71,6 +70,7 @@ def main():
     _t = {'train time': Timer(), 'val time': Timer()}
     print("base line validation:")
     validate(val_loader, net, criterion, optimizer, -1, restore_transform)
+    plot_progress(val_loader)
 
     print("===========================================================")
     print(
@@ -81,7 +81,7 @@ def main():
         train(train_loader, net, criterion, optimizer, epoch)
         _t['train time'].toc(average=False)
         print('Epoch {} - Training time: {:.2f}s'.format(epoch +
-              1, _t['train time'].diff))
+                                                         1, _t['train time'].diff))
 
         _t['val time'].tic()
         iu = validate(val_loader, net, criterion,
@@ -89,7 +89,7 @@ def main():
         all_iou.append(iu)
         _t['val time'].toc(average=False)
         print('Epoch {} - Validation time: {:.2f}s'.format(epoch +
-              1, _t['val time'].diff))
+                                                           1, _t['val time'].diff))
 
     result = calculate_average(all_iou)
     print("Average IoU:", result)
@@ -148,9 +148,9 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 iou_ += res['Mean IoU : \t']
                 # print(cls_iu)
 
-            # # Save visualization
-            # if vi < 3:  # Save visualization for the first 3 sets of images
-            #     save_binary_visualization(inputs, labels, outputs, vi)
+                # # Save visualization
+                # if vi < 3:  # Save visualization for the first 3 sets of images
+                #     save_binary_visualization(inputs, labels, outputs, vi)
 
                 for i in range(4):
                     # sum the iu of all classes seperately
@@ -163,11 +163,18 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
         print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |" % (
             cls_ius[0], cls_ius[1], cls_ius[2], cls_ius[3]))  # fancy printing the ius seperately for each class
         print("------------------------------------------------------")
-    mean_iu = iou_/len(val_loader)
-    print('[mean iu %.4f]' % (mean_iu))
+    mean_iu = iou_ / len(val_loader)
+    print('[mean iu %.4f]' % mean_iu)
     net.train()
     criterion.cuda()
     return mean_iu
+
+
+def plot_progress(val_loader):
+    data_iter = iter(val_loader)
+    inputs, label = next(data_iter)
+    t = inputs.data.cpu().numpy()
+    visualize_multi_class(t)
 
 
 if __name__ == '__main__':
