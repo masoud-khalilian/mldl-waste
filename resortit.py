@@ -46,18 +46,9 @@ class resortit(data.Dataset):
         img_path, mask_path = self.imgs[index]
         img = self.loader(img_path)
         mask = np.array(self.loader(mask_path))
-        
         if cfg.DATA.NUM_CLASSES == 1:
-            mask[mask>0] = 1   ##########Only Binary Segmentation#####
-            mask = Image.fromarray(mask)
-        else:
-            # Convert the mask to one-hot encoding
-            num_classes = cfg.DATA.NUM_CLASSES  # Number of classes
-            mask_one_hot = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.float32)
-            for class_idx in range(num_classes):
-                mask_one_hot[mask == class_idx] = class_idx
-            mask = Image.fromarray(mask_one_hot.astype(np.uint8))
-
+            mask[mask > 0] = 1  ##########Only Binary Segmentation#####
+        mask = Image.fromarray(mask)
         if self.simul_transform is not None:
             img, mask = self.simul_transform(img, mask)
         if self.transform is not None:

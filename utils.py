@@ -33,16 +33,21 @@ def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):
 
 
 def calculate_mean_iu(predictions, gts, num_classes):
-    sum_iu = 0
+    iou_classes = np.zeros(num_classes)
+
     for i in range(num_classes):
         n_ii = t_i = sum_n_ji = 1e-9
+
         for p, gt in zip(predictions, gts):
-            n_ii += np.sum(gt[p == i] == i)
-            t_i += np.sum(gt == i)
-            sum_n_ji += np.sum(p == i)
-        sum_iu += float(n_ii) / (t_i + sum_n_ji - n_ii)
-    mean_iu = sum_iu / num_classes
-    return mean_iu
+            if i in np.unique(gt):
+                n_ii += np.sum((gt == i) & (p == i))
+                t_i += np.sum(gt == i)
+                sum_n_ji += np.sum(p == i)
+
+        iou_classes[i] = n_ii / (t_i + sum_n_ji - n_ii)
+
+    mean_iu = np.mean(iou_classes)
+    return mean_iu, iou_classes
 
 
 class CrossEntropyLoss2d(nn.Module):
@@ -72,6 +77,7 @@ def colorize_mask(mask):
 
     return new_mask
 
+
 # ============================
 
 
@@ -79,7 +85,7 @@ def _fast_hist(label_true, label_pred, n_class):
     mask = (label_true >= 0) & (label_true < n_class)
     hist = np.bincount(
         n_class * label_true[mask].astype(int) +
-        label_pred[mask], minlength=n_class**2).reshape(n_class, n_class)
+        label_pred[mask], minlength=n_class ** 2).reshape(n_class, n_class)
     return hist
 
 
@@ -177,5 +183,5 @@ def count_your_model(model):
     # your rule here
 
     input = torch.randn(16, 3, 224, 448, device='cuda:0')
-    macs, params = profile(model, inputs=(input, ))
+    macs, params = profile(model, inputs=(input,))
     return macs, params

@@ -29,7 +29,6 @@ train_loader, val_loader, restore_transform = loading_data()
 
 
 def main():
-
     cfg_file = open('./config.py', "r")
     cfg_lines = cfg_file.readlines()
 
@@ -81,15 +80,13 @@ def main():
         train(train_loader, net, criterion, optimizer, epoch)
         _t['train time'].toc(average=False)
         print('Epoch {} - Training time: {:.2f}s'.format(epoch +
-              1, _t['train time'].diff))
+                                                         1, _t['train time'].diff))
 
         _t['val time'].tic()
-        iu = validate(val_loader, net, criterion,
-                      optimizer, epoch, restore_transform)
-        all_iou.append(iu)
+        validate(val_loader, net, criterion, optimizer, epoch, restore_transform)
         _t['val time'].toc(average=False)
         print('Epoch {} - Validation time: {:.2f}s'.format(epoch +
-              1, _t['val time'].diff))
+                                                           1, _t['val time'].diff))
 
     result = calculate_average(all_iou)
     print("Average IoU:", result)
@@ -118,14 +115,10 @@ def train(train_loader, net, criterion, optimizer, epoch):
 
 
 def validate(val_loader, net, criterion, optimizer, epoch, restore):
-    # Createing an array of zeroes to add all the ius for each class
-    cls_ius = np.zeros(4)
     net.eval()
     criterion.cpu()
-    input_batches = []
-    output_batches = []
-    label_batches = []
     iou_ = 0.0
+    cls_ius = [0.0] * cfg.DATA.NUM_CLASSES
     with torch.no_grad():
         for vi, data in enumerate(val_loader, 0):
             inputs, labels = data
@@ -136,38 +129,29 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 # For binary classification
                 outputs[outputs > 0.5] = 1
                 outputs[outputs <= 0.5] = 0
-                iou_ += calculate_mean_iu([outputs.squeeze_(1).data.cpu().numpy()],
-                                          [labels.data.cpu().numpy()],
+                iou_ += calculate_mean_iu(outputs.squeeze_(1).data.cpu().numpy(),
+                                          labels.data.cpu().numpy(),
                                           2)
             else:
-                # For multi-classification ???
-                _, predicted = torch.max(outputs, 1)
-                pred = predicted.data.cpu().numpy()
-                leb = labels.data.cpu().numpy()
-                res, cls_iu = scores([leb], [pred], cfg.DATA.NUM_CLASSES)
-                iou_ += res['Mean IoU : \t']
-                # print(cls_iu)
+                # For multi-classification
+                res, cls_iu = calculate_mean_iu(outputs.argmax(dim=1).data.cpu().numpy(),
+                                                labels.data.cpu().numpy(),
+                                                cfg.DATA.NUM_CLASSES)
+                iou_ += res
+                cls_ius = [sum(x) for x in zip(cls_ius, cls_iu)]
 
-            # # Save visualization
-            # if vi < 3:  # Save visualization for the first 3 sets of images
-            #     save_binary_visualization(inputs, labels, outputs, vi)
-
-                for i in range(4):
-                    # sum the iu of all classes seperately
-                    cls_ius[i] += cls_iu[i]
-    if cfg.DATA.NUM_CLASSES != 1:
-        # Out of loop ---> calcualte average by deviding by the entire loop length
-        cls_ius = cls_ius / len(val_loader)
+    if cfg.DATA.NUM_CLASSES == 1:
+        print('[mean iu %.4f]' % (iou_ / len(val_loader)))
+    else:
+        mean_ius = [x / len(val_loader) for x in cls_ius]
         print("------------------------------------------------------")
-        print("|    paper   |   bottle   |  aluminium  |   Nylon    |")
-        print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |" % (
-            cls_ius[0], cls_ius[1], cls_ius[2], cls_ius[3]))  # fancy printing the ius seperately for each class
+        print("|    none   |   paper   |  bottle  |   aluminium    |  Nylon  |")
+        print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |   %.4f   |" % (
+            mean_ius[0], mean_ius[1], mean_ius[2], mean_ius[3], mean_ius[4]))
         print("------------------------------------------------------")
-    mean_iu = iou_/len(val_loader)
-    print('[mean iu %.4f]' % (mean_iu))
+        print('[mean iu %.4f]' % (iou_ / len(val_loader)))
     net.train()
     criterion.cuda()
-    return mean_iu
 
 
 if __name__ == '__main__':
