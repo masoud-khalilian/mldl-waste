@@ -74,7 +74,6 @@ def main():
     print("===========================================================")
     print(
         f'start training at=> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-    all_iou = []
     for epoch in range(cfg.TRAIN.MAX_EPOCH):
         _t['train time'].tic()
         train(train_loader, net, criterion, optimizer, epoch)
@@ -88,8 +87,6 @@ def main():
         print('Epoch {} - Validation time: {:.2f}s'.format(epoch +
                                                            1, _t['val time'].diff))
 
-    result = calculate_average(all_iou)
-    print("Average IoU:", result)
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = count_your_model(net)
     # converted macs into flops and it only shows 3 decimal points.
@@ -129,9 +126,10 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 # For binary classification
                 outputs[outputs > 0.5] = 1
                 outputs[outputs <= 0.5] = 0
-                iou_ += calculate_mean_iu(outputs.squeeze_(1).data.cpu().numpy(),
-                                          labels.data.cpu().numpy(),
-                                          2)
+                res, _ = calculate_mean_iu(outputs.squeeze_(1).data.cpu().numpy(),
+                                           labels.data.cpu().numpy(),
+                                           2)
+                iou_ += res
             else:
                 # For multi-classification
                 res, cls_iu = calculate_mean_iu(outputs.argmax(dim=1).data.cpu().numpy(),

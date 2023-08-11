@@ -116,15 +116,6 @@ def scores(label_trues, label_preds, n_class):
     }, cls_iu
 
 
-def calculate_average(numbers):
-    if not numbers:
-        return None  # Return None for an empty array
-
-    total = sum(numbers)
-    average = total / len(numbers)
-    return average
-
-
 def save_model_with_timestamp(model, model_dir):
     # Get the current timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
