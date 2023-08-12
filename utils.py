@@ -1,20 +1,17 @@
-import torch
 from torch import nn, save
 import torch
 import torch.nn.functional as F
 import numpy as np
-from PIL import Image
 import os
 import shutil
 from config import cfg
 from datetime import datetime
-from model_bisenet import BiSeNet
-from model_enet import ENet
-from model_icnet import ICNet
+from models.bisenet.bisenet import BiSeNet
+from models.enet.enet import ENet
+from models.icnet.icnet import ICNet
 from torchvision.utils import save_image
 from PIL import Image
 from thop import profile
-from torch.autograd import Variable
 
 
 def weights_init_kaiming(m):
