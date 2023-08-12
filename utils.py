@@ -34,16 +34,21 @@ def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):
 
 
 def calculate_mean_iu(predictions, gts, num_classes):
-    sum_iu = 0
+    iou_classes = np.zeros(num_classes)
+
     for i in range(num_classes):
         n_ii = t_i = sum_n_ji = 1e-9
+
         for p, gt in zip(predictions, gts):
-            n_ii += np.sum(gt[p == i] == i)
-            t_i += np.sum(gt == i)
-            sum_n_ji += np.sum(p == i)
-        sum_iu += float(n_ii) / (t_i + sum_n_ji - n_ii)
-    mean_iu = sum_iu / num_classes
-    return mean_iu
+            if i in np.unique(gt):
+                n_ii += np.sum((gt == i) & (p == i))
+                t_i += np.sum(gt == i)
+                sum_n_ji += np.sum(p == i)
+
+        iou_classes[i] = n_ii / (t_i + sum_n_ji - n_ii)
+
+    mean_iu = np.mean(iou_classes)
+    return mean_iu, iou_classes
 
 
 class CrossEntropyLoss2d(nn.Module):
@@ -110,15 +115,6 @@ def scores(label_trues, label_preds, n_class):
         'FreqW Acc : \t': fwavacc,
         'Mean IoU : \t': mean_iu
     }, cls_iu
-
-
-def calculate_average(numbers):
-    if not numbers:
-        return None  # Return None for an empty array
-
-    total = sum(numbers)
-    average = total / len(numbers)
-    return average
 
 
 def save_model_with_timestamp(model, model_dir):
