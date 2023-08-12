@@ -1,4 +1,5 @@
 import torch
+from matplotlib import pyplot as plt
 from torch import nn, save
 import torch
 import torch.nn.functional as F
@@ -15,7 +16,6 @@ from torchvision.utils import save_image
 from PIL import Image
 from thop import profile
 from torch.autograd import Variable
-from matplotlib import pyplot as plt
 
 
 def weights_init_kaiming(m):
@@ -145,32 +145,6 @@ def selectModel(model_name):
     return model
 
 
-def save_binary_visualization(inputs, labels, outputs, index):
-    os.makedirs("./vis", exist_ok=True)
-    save_image(inputs, f'./vis/input_{index}.png')
-
-    labels = add_arbitrary_rgb(labels)
-    outputs = add_arbitrary_rgb(outputs)
-    save_image(labels, f'./vis/labels_{index}.png')
-    save_image(outputs, f'./vis/outputs_{index}.png')
-
-
-def add_arbitrary_rgb(tensor):
-    expanded_tensor = tensor.unsqueeze(1).repeat(1, 3, 1, 1)
-    rgb_tensor = torch.zeros(
-        16, 3, 224, 448, dtype=torch.float32, device='cuda')
-    # Assign the original tensor as the red channel
-    rgb_tensor[:, 0, :, :] = expanded_tensor[:, 0, :, :]
-    # Assign the original tensor as the green channel
-    rgb_tensor[:, 1, :, :] = expanded_tensor[:, 0, :, :]
-    # Assign the original tensor as the blue channel
-    rgb_tensor[:, 2, :, :] = expanded_tensor[:, 0, :, :]
-    rgb_tensor[rgb_tensor != 0] = torch.clamp(
-        rgb_tensor[rgb_tensor != 0] * 255, max=255)
-
-    return rgb_tensor
-
-
 def count_your_model(model):
     # your rule here
 
@@ -179,14 +153,17 @@ def count_your_model(model):
     return macs, params
 
 
-def visualize_multi_class(input_img):
-    input_img = np.transpose(input_img[0], (1, 2, 0))
-    input_img = input_img / np.max(input_img)
-    input_img = np.clip(input_img, 0, 1)
-    mno = 3  # Should be between 0 - n-1 | where n is the number of classes
-    figure = plt.figure(figsize=(20, 10))
-    plt.subplot(1, 3, 1)
-    plt.title('Input Image')
-    plt.axis('off')
-    plt.imshow(input_img)
-    plt.show()
+def save_images(arr: np.ndarray, prediction, lables, epoch, path: str = './images'):
+    arr = arr.astype(np.float32)
+    arr = (arr - arr.min()) / (arr.max() - arr.min())
+    for i in range(arr.shape[0]):
+        filename = f"{path}/epoch_{epoch}_input_{i}.png"
+        plt.imsave(filename, arr[i].transpose(1, 2, 0))
+
+    for i in range(lables.shape[0]):
+        colorized_mask = colorize_mask(lables[i])
+        colorized_mask.save(f"{path}/epoch_{epoch}_mask_{i}.png")
+
+    for i in range(prediction.shape[0]):
+        colorized_mask = colorize_mask(prediction[i])
+        colorized_mask.save(f"{path}/epoch_{epoch}_prediction_{i}.png")

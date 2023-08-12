@@ -19,6 +19,7 @@ from loading_data import loading_data
 from utils import *
 from timer import Timer
 import pdb
+import numpy as np
 
 exp_name = cfg.TRAIN.EXP_NAME
 log_txt = cfg.TRAIN.EXP_LOG_PATH + '/' + exp_name + '.txt'
@@ -70,7 +71,6 @@ def main():
     _t = {'train time': Timer(), 'val time': Timer()}
     print("base line validation:")
     validate(val_loader, net, criterion, optimizer, -1, restore_transform)
-    plot_progress(val_loader)
 
     print("===========================================================")
     print(
@@ -83,8 +83,7 @@ def main():
                                                          1, _t['train time'].diff))
 
         _t['val time'].tic()
-        validate(val_loader, net, criterion,
-                 optimizer, epoch, restore_transform)
+        validate(val_loader, net, criterion, optimizer, epoch, restore_transform)
         _t['val time'].toc(average=False)
         print('Epoch {} - Validation time: {:.2f}s'.format(epoch +
                                                            1, _t['val time'].diff))
@@ -118,6 +117,7 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
     criterion.cpu()
     iou_ = 0.0
     cls_ius = [0.0] * cfg.DATA.NUM_CLASSES
+    prediction = np.zeros(0)
     with torch.no_grad():
         for vi, data in enumerate(val_loader, 0):
             inputs, labels = data
@@ -128,17 +128,25 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 # For binary classification
                 outputs[outputs > 0.5] = 1
                 outputs[outputs <= 0.5] = 0
-                res, _ = calculate_mean_iu(outputs.squeeze_(1).data.cpu().numpy(),
+                prediction = outputs.squeeze_(1).data.cpu().numpy()
+                res, _ = calculate_mean_iu(prediction,
                                            labels.data.cpu().numpy(),
                                            2)
                 iou_ += res
             else:
                 # For multi-classification
-                res, cls_iu = calculate_mean_iu(outputs.argmax(dim=1).data.cpu().numpy(),
+                prediction = outputs.argmax(dim=1).data.cpu().numpy()
+                res, cls_iu = calculate_mean_iu(prediction,
                                                 labels.data.cpu().numpy(),
                                                 cfg.DATA.NUM_CLASSES)
                 iou_ += res
                 cls_ius = [sum(x) for x in zip(cls_ius, cls_iu)]
+
+            if epoch == 1 or epoch == 99:
+                if (vi == 0):
+                    save_images(inputs.data.cpu().numpy(),
+                                prediction,
+                                labels.data.cpu().numpy(), epoch, './images')
 
     if cfg.DATA.NUM_CLASSES == 1:
         print('[mean iu %.4f]' % (iou_ / len(val_loader)))
@@ -152,13 +160,6 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
         print('[mean iu %.4f]' % (iou_ / len(val_loader)))
     net.train()
     criterion.cuda()
-
-
-def plot_progress(val_loader):
-    data_iter = iter(val_loader)
-    inputs, label = next(data_iter)
-    t = inputs.data.cpu().numpy()
-    visualize_multi_class(t)
 
 
 if __name__ == '__main__':
