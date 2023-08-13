@@ -7,11 +7,24 @@ import os
 import shutil
 from config import cfg
 from datetime import datetime
-from models.bisenet.bisenet import BiSeNet
-from models.enet.enet import ENet
-from models.icnet.icnet import ICNet
 from PIL import Image
 from thop import profile
+
+from models.bisenet.bisenet import BiSeNet
+from models.bisenet.bisenet_f_f import BiSeNet_f_f
+from models.bisenet.bisenet_f_h import BiSeNet_f_h
+from models.bisenet.bisenet_h_f import BiSeNet_h_f
+from models.bisenet.bisenet_h_h import BiSeNet_h_h
+from models.enet.enet import ENet
+from models.enet.enet_f_f import ENet_f_f
+from models.enet.enet_f_h import ENet_f_h
+from models.enet.enet_h_f import ENet_h_f
+from models.enet.enet_h_h import ENet_h_h
+from models.icnet.icnet import ICNet
+from models.icnet.icnet_f_f import ICNet_f_f
+from models.icnet.icnet_f_h import ICNet_f_h
+from models.icnet.icnet_h_f import ICNet_h_f
+from models.icnet.icnet_h_h import ICNet_h_h
 
 
 def weights_init_kaiming(m):
@@ -132,9 +145,21 @@ def save_model_with_timestamp(model, model_dir):
 
 def selectModel(model_name):
     options = {
-        'icnet': ICNet,  # Replace ICNet with the actual class name
-        'bisenet': BiSeNet,  # Replace BiSeNet with the actual class name
-        'enet': ENet  # Replace ENet with the actual class name
+        'icnet': ICNet,  # ICNet
+        'icnet-f-f': ICNet_f_f,  # ICNet with fewer encoder and fewer decoder
+        'icnet-f-h': ICNet_f_h,  # ICNet with fewer encoder and higher decoder
+        'icnet-h-f': ICNet_h_f,  # ICNet with higher encoder and fewer decoder
+        'icnet-h-h': ICNet_h_h,  # ICNet with higher encoder and higher decoder
+        'bisenet': BiSeNet,  # BiSeNet with the actual class name
+        'bisenet-f-f': BiSeNet_f_f,  # BiSeNet with fewer encoder and fewer decoder
+        'bisenet-f-h': BiSeNet_f_h,  # BiSeNet with fewer encoder and higher decoder
+        'bisenet-h-f': BiSeNet_h_f,  # BiSeNet with higher encoder and fewer decoder
+        'bisenet-h-h': BiSeNet_h_h,  # BiSeNet with higher encoder and higher decoder
+        'enet': ENet,  # ENet with the actual class name
+        'enet-f-f': ENet_f_f,  # ENet with fewer encoder and fewer decoder
+        'enet-f-h': ENet_f_h,  # ENet with fewer encoder and higher decoder
+        'enet-h-f': ENet_h_f,  # ENet with higher encoder and fewer decoder
+        'enet-h-h': ENet_h_h  # ENet with higher encoder and higher decoder
     }
 
     model = options[model_name]()
@@ -150,6 +175,9 @@ def count_your_model(model):
 
 
 def save_images(arr: np.ndarray, prediction, lables, epoch, path: str = './images'):
+    if not os.path.exists('./images'):
+        os.mkdir('./images')
+
     arr = arr.astype(np.float32)
     arr = (arr - arr.min()) / (arr.max() - arr.min())
     for i in range(arr.shape[0]):

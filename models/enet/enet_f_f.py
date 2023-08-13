@@ -153,13 +153,10 @@ class BottleNeck(nn.Module):
 
 
 ENCODER_LAYER_NAMES = ['initial', 'bottleneck_1_0', 'bottleneck_1_1',
-                       'bottleneck_1_2', 'bottleneck_1_3', 'bottleneck_1_4',
-                       'bottleneck_2_0', 'bottleneck_2_1', 'bottleneck_2_2',
+                       'bottleneck_1_2','bottleneck_2_0', 'bottleneck_2_1', 'bottleneck_2_2',
                        'bottleneck_2_3', 'bottleneck_2_4', 'bottleneck_2_5',
                        'bottleneck_2_6', 'bottleneck_2_7', 'bottleneck_2_8',
-                       'bottleneck_3_1', 'bottleneck_3_2', 'bottleneck_3_3',
-                       'bottleneck_3_4', 'bottleneck_3_5', 'bottleneck_3_6',
-                       'bottleneck_3_7', 'bottleneck_3_8', 'classifier']
+                       'classifier']
 DECODER_LAYER_NAMES = ['bottleneck_4_0', 'bottleneck_4_1', 'bottleneck_4_2'
                        'bottleneck_5_0', 'bottleneck_5_1', 'fullconv']
 
@@ -172,12 +169,12 @@ class Encoder(nn.Module):
         layers.append(InitialBlock())
         layers.append(BottleNeck(16, 64, regularlizer_prob=0.01,
                                  downsampling=True))
-        for i in range(4):
+        for i in range(2):
             layers.append(BottleNeck(64, 64, regularlizer_prob=0.01))
 
         # Section 2 and 3
         layers.append(BottleNeck(64, 128, downsampling=True))
-        for i in range(2):
+        for i in range(1):
             layers.append(BottleNeck(128, 128))
             layers.append(BottleNeck(128, 128, dilated=True, dilation_rate=2))
             layers.append(BottleNeck(128, 128, asymmetric=True))
@@ -217,12 +214,12 @@ class Decoder(nn.Module):
         layers = []
         # Section 4
         layers.append(BottleNeck(128, 64, upsampling=True, use_relu=True))
-        layers.append(BottleNeck(64, 64, use_relu=True))
+        # layers.append(BottleNeck(64, 64, use_relu=True))
         layers.append(BottleNeck(64, 64, use_relu=True))
 
         # Section 5
         layers.append(BottleNeck(64, 16, upsampling=True, use_relu=True))
-        layers.append(BottleNeck(16, 16, use_relu=True))
+        # layers.append(BottleNeck(16, 16, use_relu=True))
         layers.append(nn.ConvTranspose2d(16, num_classes, 2, stride=2))
 
         self.layers = nn.ModuleList([layer for layer in layers])
