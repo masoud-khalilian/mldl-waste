@@ -132,9 +132,9 @@ class BottleNeck(nn.Module):
             main, indices = self.pool(input)
             if (self.output_channels != self.input_channels):
                 pad = Variable(torch.Tensor(input_shape[0],
-                               self.output_channels - self.input_channels,
-                               input_shape[2] // 2,
-                               input_shape[3] // 2).zero_(), requires_grad=False)
+                                            self.output_channels - self.input_channels,
+                                            input_shape[2] // 2,
+                                            input_shape[3] // 2).zero_(), requires_grad=False)
                 if (torch.cuda.is_available):
                     pad = pad.cuda(0)
                 main = torch.cat((main, pad), 1)
@@ -161,7 +161,7 @@ ENCODER_LAYER_NAMES = ['initial', 'bottleneck_1_0', 'bottleneck_1_1',
                        'bottleneck_3_4', 'bottleneck_3_5', 'bottleneck_3_6',
                        'bottleneck_3_7', 'bottleneck_3_8', 'classifier']
 DECODER_LAYER_NAMES = ['bottleneck_4_0', 'bottleneck_4_1', 'bottleneck_4_2'
-                       'bottleneck_5_0', 'bottleneck_5_1', 'fullconv']
+                                                           'bottleneck_5_0', 'bottleneck_5_1', 'fullconv']
 
 
 class Encoder(nn.Module):
@@ -211,7 +211,6 @@ class Encoder(nn.Module):
         return output, pooling_stack
 
 
-
 class Decoder(nn.Module):
     def __init__(self, num_classes):
         super(Decoder, self).__init__()
@@ -220,21 +219,13 @@ class Decoder(nn.Module):
         layers.append(BottleNeck(128, 128, use_relu=True))
         layers.append(BottleNeck(128, 128, use_relu=True))
         layers.append(BottleNeck(128, 128, use_relu=True))
-        layers.append(BottleNeck(128, 128, use_relu=True))
-        layers.append(BottleNeck(128, 128, use_relu=True))
         layers.append(BottleNeck(128, 64, upsampling=True, use_relu=True))
         layers.append(BottleNeck(64, 64, use_relu=True))
         layers.append(BottleNeck(64, 64, use_relu=True))
         layers.append(BottleNeck(64, 64, use_relu=True))
-        layers.append(BottleNeck(64, 64, use_relu=True))
-        layers.append(BottleNeck(64, 64, use_relu=True))
+
         # Section 5
-        layers.append(BottleNeck(64, 32, upsampling=True, use_relu=True))
-        layers.append(BottleNeck(32, 32, use_relu=True))
-        layers.append(BottleNeck(32, 32, use_relu=True))
-        layers.append(BottleNeck(32, 32, use_relu=True))
-        layers.append(BottleNeck(32, 32, use_relu=True))
-        layers.append(BottleNeck(32, 16, upsampling=True, use_relu=True))
+        layers.append(BottleNeck(64, 16, upsampling=True, use_relu=True))
         layers.append(BottleNeck(16, 16, use_relu=True))
         layers.append(BottleNeck(16, 16, use_relu=True))
         layers.append(BottleNeck(16, 16, use_relu=True))
