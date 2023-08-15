@@ -211,17 +211,32 @@ class Encoder(nn.Module):
         return output, pooling_stack
 
 
+
 class Decoder(nn.Module):
     def __init__(self, num_classes):
         super(Decoder, self).__init__()
         layers = []
         # Section 4
+        layers.append(BottleNeck(128, 128, use_relu=True))
+        layers.append(BottleNeck(128, 128, use_relu=True))
+        layers.append(BottleNeck(128, 128, use_relu=True))
+        layers.append(BottleNeck(128, 128, use_relu=True))
+        layers.append(BottleNeck(128, 128, use_relu=True))
         layers.append(BottleNeck(128, 64, upsampling=True, use_relu=True))
         layers.append(BottleNeck(64, 64, use_relu=True))
         layers.append(BottleNeck(64, 64, use_relu=True))
-
+        layers.append(BottleNeck(64, 64, use_relu=True))
+        layers.append(BottleNeck(64, 64, use_relu=True))
+        layers.append(BottleNeck(64, 64, use_relu=True))
         # Section 5
-        layers.append(BottleNeck(64, 16, upsampling=True, use_relu=True))
+        layers.append(BottleNeck(64, 32, upsampling=True, use_relu=True))
+        layers.append(BottleNeck(32, 32, use_relu=True))
+        layers.append(BottleNeck(32, 32, use_relu=True))
+        layers.append(BottleNeck(32, 32, use_relu=True))
+        layers.append(BottleNeck(32, 32, use_relu=True))
+        layers.append(BottleNeck(32, 16, upsampling=True, use_relu=True))
+        layers.append(BottleNeck(16, 16, use_relu=True))
+        layers.append(BottleNeck(16, 16, use_relu=True))
         layers.append(BottleNeck(16, 16, use_relu=True))
         layers.append(nn.ConvTranspose2d(16, num_classes, 2, stride=2))
 
