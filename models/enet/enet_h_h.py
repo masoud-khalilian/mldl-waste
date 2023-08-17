@@ -132,9 +132,9 @@ class BottleNeck(nn.Module):
             main, indices = self.pool(input)
             if (self.output_channels != self.input_channels):
                 pad = Variable(torch.Tensor(input_shape[0],
-                               self.output_channels - self.input_channels,
-                               input_shape[2] // 2,
-                               input_shape[3] // 2).zero_(), requires_grad=False)
+                                            self.output_channels - self.input_channels,
+                                            input_shape[2] // 2,
+                                            input_shape[3] // 2).zero_(), requires_grad=False)
                 if (torch.cuda.is_available):
                     pad = pad.cuda(0)
                 main = torch.cat((main, pad), 1)
@@ -152,16 +152,29 @@ class BottleNeck(nn.Module):
         return output
 
 
-ENCODER_LAYER_NAMES = ['initial', 'bottleneck_1_0', 'bottleneck_1_1',
-                       'bottleneck_1_2', 'bottleneck_1_3', 'bottleneck_1_4',
-                       'bottleneck_2_0', 'bottleneck_2_1', 'bottleneck_2_2',
+ENCODER_LAYER_NAMES = ['initial', 'bottleneck_1_0',
+                       'bottleneck_1_1', 'bottleneck_1_2', 'bottleneck_1_3', 'bottleneck_1_4',
+                       'bottleneck_1_1_1', 'bottleneck_1_1_2', 'bottleneck_1_1_3', 'bottleneck_1_1_4',
+
+                       'bottleneck_2_0',
+
+                       'bottleneck_2_1', 'bottleneck_2_2',
                        'bottleneck_2_3', 'bottleneck_2_4', 'bottleneck_2_5',
                        'bottleneck_2_6', 'bottleneck_2_7', 'bottleneck_2_8',
                        'bottleneck_3_1', 'bottleneck_3_2', 'bottleneck_3_3',
                        'bottleneck_3_4', 'bottleneck_3_5', 'bottleneck_3_6',
-                       'bottleneck_3_7', 'bottleneck_3_8', 'classifier']
+                       'bottleneck_3_7', 'bottleneck_3_8',
+
+                       'bottleneck_2_1_1', 'bottleneck_2_1_2',
+                       'bottleneck_2_1_3', 'bottleneck_2_1_4', 'bottleneck_2_1_5',
+                       'bottleneck_2_1_6', 'bottleneck_2_1_7', 'bottleneck_2_1_8',
+                       'bottleneck_3_1_1', 'bottleneck_3_1_2', 'bottleneck_3_1_3',
+                       'bottleneck_3_1_4', 'bottleneck_3_1_5', 'bottleneck_3_1_6',
+                       'bottleneck_3_1_7', 'bottleneck_3_1_8',
+
+                       'classifier']
 DECODER_LAYER_NAMES = ['bottleneck_4_0', 'bottleneck_4_1', 'bottleneck_4_2'
-                       'bottleneck_5_0', 'bottleneck_5_1', 'fullconv']
+                                                           'bottleneck_5_0', 'bottleneck_5_1', 'fullconv']
 
 
 class Encoder(nn.Module):
@@ -172,12 +185,12 @@ class Encoder(nn.Module):
         layers.append(InitialBlock())
         layers.append(BottleNeck(16, 64, regularlizer_prob=0.01,
                                  downsampling=True))
-        for i in range(4):
+        for i in range(8):
             layers.append(BottleNeck(64, 64, regularlizer_prob=0.01))
 
         # Section 2 and 3
         layers.append(BottleNeck(64, 128, downsampling=True))
-        for i in range(2):
+        for i in range(4):
             layers.append(BottleNeck(128, 128))
             layers.append(BottleNeck(128, 128, dilated=True, dilation_rate=2))
             layers.append(BottleNeck(128, 128, asymmetric=True))
@@ -216,12 +229,18 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         layers = []
         # Section 4
+        layers.append(BottleNeck(128, 128, use_relu=True))
+        layers.append(BottleNeck(128, 128, use_relu=True))
+        layers.append(BottleNeck(128, 128, use_relu=True))
         layers.append(BottleNeck(128, 64, upsampling=True, use_relu=True))
+        layers.append(BottleNeck(64, 64, use_relu=True))
         layers.append(BottleNeck(64, 64, use_relu=True))
         layers.append(BottleNeck(64, 64, use_relu=True))
 
         # Section 5
         layers.append(BottleNeck(64, 16, upsampling=True, use_relu=True))
+        layers.append(BottleNeck(16, 16, use_relu=True))
+        layers.append(BottleNeck(16, 16, use_relu=True))
         layers.append(BottleNeck(16, 16, use_relu=True))
         layers.append(nn.ConvTranspose2d(16, num_classes, 2, stride=2))
 
