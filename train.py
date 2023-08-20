@@ -87,6 +87,7 @@ def main():
         _t['val time'].toc(average=False)
         print('Epoch {} - Validation time: {:.2f}s'.format(epoch +
                                                            1, _t['val time'].diff))
+        scheduler.step()
 
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = count_your_model(net)
