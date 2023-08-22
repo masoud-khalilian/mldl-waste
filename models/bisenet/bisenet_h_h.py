@@ -25,7 +25,7 @@ class ConvBnRelu(nn.Module):
         self.conv = self.conv.cuda()  # Convert the convolution layer to CUDA format
         x = self.conv(x)
         if self.has_bn:
-              # Convert the batch normalization layer to CUDA format
+            # Convert the batch normalization layer to CUDA format
 
             x = self.bn(x)
         if self.has_relu:
@@ -35,14 +35,25 @@ class ConvBnRelu(nn.Module):
 
 
 class FeatureFusion(nn.Module):
-    def __init__(self, in_planes, out_planes,
-                 reduction=1, norm_layer=nn.BatchNorm2d):
+    def __init__(self, in_planes, out_planes, reduction=1, norm_layer=nn.BatchNorm2d):
         super(FeatureFusion, self).__init__()
         self.conv_1x1 = ConvBnRelu(in_planes, out_planes, 1, 1, 0,
                                    has_bn=True, norm_layer=norm_layer,
                                    has_relu=True, has_bias=False)
         self.channel_attention = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
+            ConvBnRelu(out_planes, out_planes // reduction, 1, 1, 0,
+                       has_bn=False, norm_layer=norm_layer,
+                       has_relu=True, has_bias=False),
+            ConvBnRelu(out_planes // reduction, out_planes, 1, 1, 0,
+                       has_bn=False, norm_layer=norm_layer,
+                       has_relu=False, has_bias=False),
+            ConvBnRelu(out_planes, out_planes // reduction, 1, 1, 0,
+                       has_bn=False, norm_layer=norm_layer,
+                       has_relu=True, has_bias=False),
+            ConvBnRelu(out_planes // reduction, out_planes, 1, 1, 0,
+                       has_bn=False, norm_layer=norm_layer,
+                       has_relu=False, has_bias=False),
             ConvBnRelu(out_planes, out_planes // reduction, 1, 1, 0,
                        has_bn=False, norm_layer=norm_layer,
                        has_relu=True, has_bias=False),
@@ -125,7 +136,7 @@ class SpatialPath(nn.Module):
         self.conv_3x3_2 = ConvBnRelu(inner_channel, inner_channel, 3, 2, 1,
                                      has_bn=True, norm_layer=norm_layer,
                                      has_relu=True, has_bias=False)
-        self.conv_1x1 = ConvBnRelu(inner_channel, out_planes, 1, 1, 0,
+        self.conv_1x1 = ConvBnRelu(inner_channel, out_planes, 1, 4, 0,
                                    has_bn=True, norm_layer=norm_layer,
                                    has_relu=True, has_bias=False)
 
@@ -162,11 +173,8 @@ class Block(nn.Module):
         self.has_proj = has_proj
 
         if has_proj:
-            self.proj = SeparableConvBnRelu(in_channels,
-                                            mid_out_channels * self.expansion,
-                                            3, stride, 1,
-                                            has_relu=False,
-                                            norm_layer=norm_layer)
+            self.proj = SeparableConvBnRelu(in_channels, mid_out_channels * self.expansion, 3, stride, 1,
+                                            has_relu=False, norm_layer=norm_layer)
 
         self.residual_branch = nn.Sequential(
             SeparableConvBnRelu(in_channels, mid_out_channels, 3, stride, dilation, dilation, has_relu=True,
@@ -193,27 +201,22 @@ class Xception(nn.Module):
         super(Xception, self).__init__()
 
         self.in_channels = 8
-        self.conv1 = ConvBnRelu(3, self.in_channels, 3, 2, 1,
-                                has_bn=True, norm_layer=norm_layer,
-                                has_relu=True, has_bias=False)
+        self.conv1 = ConvBnRelu(3, self.in_channels, 3, 2, 1, has_bn=True, norm_layer=norm_layer, has_relu=True,
+                                has_bias=False)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-
-        self.layer1 = self._make_layer(
-            block, norm_layer, layers[0], channels[0], stride=2)
-        self.layer2 = self._make_layer(
-            block, norm_layer, layers[1], channels[1], stride=2)
-        self.layer3 = self._make_layer(
-            block, norm_layer, layers[2], channels[2], stride=2)
+        self.layer1 = self._make_layer(block, norm_layer, layers[0], channels[0], stride=2)
+        self.layer2 = self._make_layer(block, norm_layer, layers[1], channels[1], stride=2)
+        self.layer3 = self._make_layer(block, norm_layer, layers[2], channels[2], stride=2)
+        self.layer4 = self._make_layer(block, norm_layer, layers[3], channels[3], stride=2)
+        self.layer5 = self._make_layer(block, norm_layer, layers[4], channels[4], stride=2)
 
     def _make_layer(self, block, norm_layer, blocks, mid_out_channels, stride=1):
         layers = []
         has_proj = True if stride > 1 else False
-        layers.append(block(self.in_channels, mid_out_channels,
-                            has_proj, stride=stride, norm_layer=norm_layer))
+        layers.append(block(self.in_channels, mid_out_channels, has_proj, stride=stride, norm_layer=norm_layer))
         self.in_channels = mid_out_channels * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.in_channels, mid_out_channels,
-                                has_proj=False, stride=1, norm_layer=norm_layer))
+            layers.append(block(self.in_channels, mid_out_channels, has_proj=False, stride=1, norm_layer=norm_layer))
 
         return nn.Sequential(*layers)
 
@@ -228,12 +231,16 @@ class Xception(nn.Module):
         blocks.append(x)
         x = self.layer3(x)
         blocks.append(x)
+        x = self.layer4(x)
+        blocks.append(x)
+        x = self.layer5(x)
+        blocks.append(x)
 
         return blocks
 
 
 def load_xception39():
-    model = Xception(Block, [4, 8, 4], [16, 32, 64])
+    model = Xception(Block, [4, 8, 4, 8, 16], [16, 32, 64, 128, 256])
 
     return model
 
@@ -243,28 +250,21 @@ class BiSeNet_h_h(nn.Module):
         super(BiSeNet_h_h, self).__init__()
 
         self.context_path = load_xception39()
-        self.spatial_path = SpatialPath(3, 128, norm_layer).cuda()
-        conv_channel = 128
+        self.spatial_path = SpatialPath(3, 256, norm_layer).cuda()
+        conv_c = 256
         self.global_context = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
-            ConvBnRelu(256, conv_channel, 1, 1, 0, has_bn=True,
-                       has_relu=True, has_bias=False, norm_layer=norm_layer)
+            ConvBnRelu(1024, conv_c, 1, 1, 0, has_bn=True, has_relu=True, has_bias=False, norm_layer=norm_layer)
         )
-        self.arms = [AttentionRefinement(256, conv_channel, norm_layer),
-                     AttentionRefinement(128, conv_channel, norm_layer)]
-        self.refines = [
-            ConvBnRelu(conv_channel, conv_channel, 3, 1, 1, has_bn=True, norm_layer=norm_layer, has_relu=True,
-                       has_bias=False),
-            ConvBnRelu(conv_channel, conv_channel, 3, 1, 1, has_bn=True, norm_layer=norm_layer, has_relu=True,
-                       has_bias=False)]
-
-        self.heads = [BiSeNetHead(conv_channel, num_classes, 16, True, norm_layer),
-                      BiSeNetHead(conv_channel, num_classes,
-                                  8, True, norm_layer),
-                      BiSeNetHead(conv_channel * 2, num_classes, 8, False, norm_layer)]
-
-        self.ffm = FeatureFusion(
-            conv_channel * 2, conv_channel * 2, 1, norm_layer)
+        self.arms = [AttentionRefinement(1024, conv_c, norm_layer), AttentionRefinement(512, conv_c, norm_layer)]
+        self.refines = [ConvBnRelu(conv_c, conv_c, 3, 1, 1, has_bn=True, norm_layer=norm_layer, has_relu=True,
+                                   has_bias=False),
+                        ConvBnRelu(conv_c, conv_c, 3, 1, 1, has_bn=True, norm_layer=norm_layer, has_relu=True,
+                                   has_bias=False)]
+        self.heads = [BiSeNetHead(conv_c, num_classes, 16, True, norm_layer),
+                      BiSeNetHead(conv_c, num_classes, 8, True, norm_layer),
+                      BiSeNetHead(conv_c * 2, num_classes, 8, False, norm_layer)]
+        self.ffm = FeatureFusion(conv_c * 2, conv_c * 2, 1, norm_layer)
 
     def forward(self, x):
         spatial_out = self.spatial_path(x)
@@ -297,4 +297,7 @@ class BiSeNet_h_h(nn.Module):
         else:
             out = self.heads[-1](pred_out[-1])
             output.append(out)
-        return output[-1]  # this surely must be wrong
+        target_size = (224, 448)
+        upsampled_tensor = nn.functional.interpolate(output[-1], size=target_size, mode='bilinear', align_corners=False)
+
+        return upsampled_tensor  # this surely must be wrong
