@@ -41,7 +41,8 @@ __C.TRAIN.PRETRAINED_ENCODER = ''  # Path of the pretrained encoder
 
 __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
-__C.TRAIN.AUGMENTATION = "No" # takes values No,Yes
+__C.TRAIN.AUGMENTATION = "T2" #can take values T1,T2,T3, or none
+__C.TRAIN.PRETRAINING = False
  
 __C.TRAIN.GPU_ID = [0]
 
@@ -55,7 +56,7 @@ __C.TRAIN.NUM_EPOCH_LR_DECAY = 1  # epoches
 
 __C.TRAIN.WEIGHT_DECAY = 2e-4
 
-__C.TRAIN.MAX_EPOCH = 50
+__C.TRAIN.MAX_EPOCH = 200
 
 # output
 __C.TRAIN.PRINT_FREQ = 10

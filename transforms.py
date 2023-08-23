@@ -3,6 +3,7 @@ import random
 import numpy as np
 from PIL import Image, ImageOps, ImageFilter
 from torchvision.transforms import ColorJitter as jitter
+from torchvision.transforms import RandomResizedCrop as RRC
 
 
 import torch
@@ -69,7 +70,14 @@ class ColorJitter(object):
     def __call__(self,img, mask):
         transform = jitter(0.4, 0.6, 0.3, 0.2)
         return transform(img),mask
-
+    
+class RandomResizedCrop(object):
+    def __init__(self, ratio):
+        self.ratio = ratio
+    def __call__(self,img,mask):
+        transform = RRC(self.ratio, 1)
+        return transform(img),transform(mask)
+    
 class Rotate_90(object):
     def __call__(self,img, mask):
         return img.transpose(Image.TRANSPOSE).transpose(Image.FLIP_TOP_BOTTOM), mask.transpose(Image.TRANSPOSE).transpose(Image.FLIP_TOP_BOTTOM)

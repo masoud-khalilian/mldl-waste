@@ -9,39 +9,55 @@ from torch.utils.data import ConcatDataset
 
 def loading_data():
     mean_std = cfg.DATA.MEAN_STD
-    if cfg.TRAIN.AUGMENTATION == 'No':
-        train_simul_transform = own_transforms.Compose([
-            own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
-            own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
-            own_transforms.RandomHorizontallyFlip()
+    if not cfg.TRAIN.PRETRAINING:
+        if cfg.TRAIN.AUGMENTATION == "T1":
+            train_simul_transform = own_transforms.Compose([
+                own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
+                own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
+                own_transforms.ColorJitter(),
+                own_transforms.RandomHorizontallyFlip()
     ])
-    if cfg.TRAIN.AUGMENTATION == 'Yes':
+        if cfg.TRAIN.AUGMENTATION == "T2":
+            train_simul_transform = own_transforms.Compose([
+                own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
+                own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
+                own_transforms.ColorJitter(),
+                own_transforms.RandomHorizontallyFlip(),
+                own_transforms.RandomResizedCrop(0.5)
+    ])
+        if cfg.TRAIN.AUGMENTATION == "T3":
+            train_simul_transform = own_transforms.Compose([
+                own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
+                own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
+                own_transforms.ColorJitter(),
+                own_transforms.RandomHorizontallyFlip(),
+                own_transforms.RandomResizedCrop(0.75)
+    ])
+        else:
+            train_simul_transform = own_transforms.Compose([
+                own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
+                own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
+                own_transforms.RandomHorizontallyFlip()
+            ])
+    if cfg.TRAIN.PRETRAINING:
         train_simul_transform0 = own_transforms.Compose([
             own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0]/ 0.875)),
             own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
-            own_transforms.ColorJitter(),
-            own_transforms.CenterCrop((224,448))
         ])
         train_simul_transform1 = own_transforms.Compose([
             own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0]/ 0.875)),
-            own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
-            own_transforms.ColorJitter(),
             own_transforms.Rotate_90(),
-            own_transforms.CenterCrop((224,448))
+            own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE)
         ])
         train_simul_transform2 = own_transforms.Compose([
             own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0]/ 0.875)),
-            own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
-            own_transforms.ColorJitter(),
             own_transforms.Rotate_180(),
-            own_transforms.CenterCrop((224,448))
+            own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE)
         ])
         train_simul_transform3 = own_transforms.Compose([
             own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0]/ 0.875)),
-            own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
-            own_transforms.ColorJitter(),
             own_transforms.Rotate_270(),
-            own_transforms.CenterCrop((224,448)) 
+            own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE)
     ])
     val_simul_transform = own_transforms.Compose([
         own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
@@ -60,7 +76,7 @@ def loading_data():
         standard_transforms.ToPILImage()
     ])
 
-    if cfg.TRAIN.AUGMENTATION == 'Yes':
+    if cfg.TRAIN.PRETRAINING:
         train_set = []
     
         for i in range(4):

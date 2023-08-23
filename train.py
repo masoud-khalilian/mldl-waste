@@ -62,7 +62,8 @@ def main():
         criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
     else:
         criterion = torch.nn.CrossEntropyLoss().cuda()  # Multiclass Classification
-
+    
+    print(criterion)
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR,
                            weight_decay=cfg.TRAIN.WEIGHT_DECAY)
     scheduler = StepLR(
@@ -77,6 +78,7 @@ def main():
     for epoch in range(cfg.TRAIN.MAX_EPOCH):
         _t['train time'].tic()
         train(train_loader, net, criterion, optimizer, epoch)
+        scheduler.step()
         _t['train time'].toc(average=False)
         print('Epoch {} - Training time: {:.2f}s'.format(epoch +
                                                          1, _t['train time'].diff))
@@ -109,6 +111,7 @@ def train(train_loader, net, criterion, optimizer, epoch):
 
         loss.backward()
         optimizer.step()
+        
 
 
 def validate(val_loader, net, criterion, optimizer, epoch, restore):
