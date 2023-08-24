@@ -1,20 +1,30 @@
-import torch
+from matplotlib import pyplot as plt
 from torch import nn, save
 import torch
 import torch.nn.functional as F
 import numpy as np
-from PIL import Image
 import os
 import shutil
 from config import cfg
 from datetime import datetime
-from model_bisenet import BiSeNet
-from model_enet import ENet
-from model_icnet import ICNet
-from torchvision.utils import save_image
 from PIL import Image
 from thop import profile
-from torch.autograd import Variable
+
+from models.bisenet.bisenet import BiSeNet
+from models.bisenet.bisenet_f_f import BiSeNet_f_f
+from models.bisenet.bisenet_f_h import BiSeNet_f_h
+from models.bisenet.bisenet_h_f import BiSeNet_h_f
+from models.bisenet.bisenet_h_h import BiSeNet_h_h
+from models.enet.enet import ENet
+from models.enet.enet_f_f import ENet_f_f
+from models.enet.enet_f_h import ENet_f_h
+from models.enet.enet_h_f import ENet_h_f
+from models.enet.enet_h_h import ENet_h_h
+from models.icnet.icnet import ICNet
+from models.icnet.icnet_f_f import ICNet_f_f
+from models.icnet.icnet_f_h import ICNet_f_h
+from models.icnet.icnet_h_f import ICNet_h_f
+from models.icnet.icnet_h_h import ICNet_h_h
 
 
 def weights_init_kaiming(m):
@@ -25,7 +35,7 @@ def weights_init_kaiming(m):
 
 
 def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):
-    """Sets the learning rate to the initially 
+    """Sets the learning rate to the initially
         configured `lr` decayed by `decay` every `n_epochs`"""
     new_lr = lr * (decay ** (cur_epoch // n_epochs))
     for param_group in optimizer.param_groups:
@@ -135,39 +145,25 @@ def save_model_with_timestamp(model, model_dir):
 
 def selectModel(model_name):
     options = {
-        'icnet': ICNet,  # Replace ICNet with the actual class name
-        'bisenet': BiSeNet,  # Replace BiSeNet with the actual class name
-        'enet': ENet  # Replace ENet with the actual class name
+        'icnet': ICNet,  # ICNet
+        'icnet-f-f': ICNet_f_f,  # ICNet with fewer encoder and fewer decoder
+        'icnet-f-h': ICNet_f_h,  # ICNet with fewer encoder and higher decoder
+        'icnet-h-f': ICNet_h_f,  # ICNet with higher encoder and fewer decoder
+        'icnet-h-h': ICNet_h_h,  # ICNet with higher encoder and higher decoder
+        'bisenet': BiSeNet,  # BiSeNet with the actual class name
+        'bisenet-f-f': BiSeNet_f_f,  # BiSeNet with fewer encoder and fewer decoder
+        'bisenet-f-h': BiSeNet_f_h,  # BiSeNet with fewer encoder and higher decoder
+        'bisenet-h-f': BiSeNet_h_f,  # BiSeNet with higher encoder and fewer decoder
+        'bisenet-h-h': BiSeNet_h_h,  # BiSeNet with higher encoder and higher decoder
+        'enet': ENet,  # ENet with the actual class name
+        'enet-f-f': ENet_f_f,  # ENet with fewer encoder and fewer decoder
+        'enet-f-h': ENet_f_h,  # ENet with fewer encoder and higher decoder
+        'enet-h-f': ENet_h_f,  # ENet with higher encoder and fewer decoder
+        'enet-h-h': ENet_h_h  # ENet with higher encoder and higher decoder
     }
 
     model = options[model_name]()
     return model
-
-
-def save_binary_visualization(inputs, labels, outputs, index):
-    os.makedirs("./vis", exist_ok=True)
-    save_image(inputs, f'./vis/input_{index}.png')
-
-    labels = add_arbitrary_rgb(labels)
-    outputs = add_arbitrary_rgb(outputs)
-    save_image(labels, f'./vis/labels_{index}.png')
-    save_image(outputs, f'./vis/outputs_{index}.png')
-
-
-def add_arbitrary_rgb(tensor):
-    expanded_tensor = tensor.unsqueeze(1).repeat(1, 3, 1, 1)
-    rgb_tensor = torch.zeros(
-        16, 3, 224, 448, dtype=torch.float32, device='cuda')
-    # Assign the original tensor as the red channel
-    rgb_tensor[:, 0, :, :] = expanded_tensor[:, 0, :, :]
-    # Assign the original tensor as the green channel
-    rgb_tensor[:, 1, :, :] = expanded_tensor[:, 0, :, :]
-    # Assign the original tensor as the blue channel
-    rgb_tensor[:, 2, :, :] = expanded_tensor[:, 0, :, :]
-    rgb_tensor[rgb_tensor != 0] = torch.clamp(
-        rgb_tensor[rgb_tensor != 0] * 255, max=255)
-
-    return rgb_tensor
 
 
 def count_your_model(model):
@@ -176,3 +172,22 @@ def count_your_model(model):
     input = torch.randn(16, 3, 224, 448, device='cuda:0')
     macs, params = profile(model, inputs=(input,))
     return macs, params
+
+
+def save_images(arr: np.ndarray, prediction, lables, epoch, path: str = './images'):
+    if not os.path.exists('./images'):
+        os.mkdir('./images')
+
+    arr = arr.astype(np.float32)
+    arr = (arr - arr.min()) / (arr.max() - arr.min())
+    for i in range(arr.shape[0]):
+        filename = f"{path}/epoch_{epoch}_input_{i}.png"
+        plt.imsave(filename, arr[i].transpose(1, 2, 0))
+
+    for i in range(lables.shape[0]):
+        colorized_mask = colorize_mask(lables[i])
+        colorized_mask.save(f"{path}/epoch_{epoch}_mask_{i}.png")
+
+    for i in range(prediction.shape[0]):
+        colorized_mask = colorize_mask(prediction[i])
+        colorized_mask.save(f"{path}/epoch_{epoch}_prediction_{i}.png")
