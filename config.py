@@ -20,7 +20,7 @@ __C.VIS = edict()
 
 __C.DATA.DATASET = 'waste'  # dataset
 __C.DATA.DATA_PATH = '/content/dataset/'
-__C.DATA.NUM_CLASSES = 1
+__C.DATA.NUM_CLASSES = 5
 __C.DATA.IGNORE_LABEL = 255
 __C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
 
@@ -28,13 +28,13 @@ __C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
 __C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 # ------------------------------MODEL------------------------
 
-__C.MODEL.NAME = 'enet'  # options are enet, icnet, bisenet
+__C.MODEL.NAME = 'enet-f-f'  # options are enet, icnet, bisenet
 
 
 # ------------------------------TRAIN------------------------
 
 # stage
-__C.TRAIN.STAGE = 'encoder'  # encoder or all for enet
+__C.TRAIN.STAGE = 'all'  # encoder or all for enet
 __C.TRAIN.PRETRAINED_ENCODER = ''  # Path of the pretrained encoder
 
 # input setting

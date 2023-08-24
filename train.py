@@ -13,13 +13,13 @@ import torchvision.transforms as standard_transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from thop import clever_format
+import pdb
+import numpy as np
 
 from config import cfg
 from loading_data import loading_data
 from utils import *
 from timer import Timer
-import pdb
-import numpy as np
 
 exp_name = cfg.TRAIN.EXP_NAME
 log_txt = cfg.TRAIN.EXP_LOG_PATH + '/' + exp_name + '.txt'
@@ -143,7 +143,7 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 cls_ius = [sum(x) for x in zip(cls_ius, cls_iu)]
 
             if epoch == 1 or epoch == 99:
-                if (vi == 0):
+                if vi == 0:
                     save_images(inputs.data.cpu().numpy(),
                                 prediction,
                                 labels.data.cpu().numpy(), epoch, './images')
