@@ -2,6 +2,9 @@ import numbers
 import random
 import numpy as np
 from PIL import Image, ImageOps, ImageFilter
+from torchvision.transforms import ColorJitter as jitter
+from torchvision.transforms import RandomResizedCrop as RRC
+
 
 import torch
 # ===============================img tranforms============================
@@ -21,7 +24,7 @@ class RandomCrop(object):
         if isinstance(size, numbers.Number):
             self.size = (int(size), int(size))
         else:
-            self.size = size
+            self.size = size   
         self.padding = padding
 
     def __call__(self, img, mask):
@@ -62,6 +65,30 @@ class RandomHorizontallyFlip(object):
         if random.random() < 0.5:
             return img.transpose(Image.FLIP_LEFT_RIGHT), mask.transpose(Image.FLIP_LEFT_RIGHT)
         return img, mask
+
+class ColorJitter(object):
+    def __call__(self,img, mask):
+        transform = jitter(0.4, 0.6, 0.3, 0.2)
+        return transform(img),mask
+    
+class RandomResizedCrop(object):
+    def __init__(self, ratio):
+        self.ratio = ratio
+    def __call__(self,img,mask):
+        transform = RRC(self.ratio, 1)
+        return transform(img),transform(mask)
+    
+class Rotate_90(object):
+    def __call__(self,img, mask):
+        return img.transpose(Image.TRANSPOSE).transpose(Image.FLIP_TOP_BOTTOM), mask.transpose(Image.TRANSPOSE).transpose(Image.FLIP_TOP_BOTTOM)
+
+class Rotate_180(object):
+    def __call__(self,img, mask):
+        return img.transpose(Image.FLIP_TOP_BOTTOM).transpose(Image.FLIP_LEFT_RIGHT), mask.transpose(Image.FLIP_TOP_BOTTOM).transpose(Image.FLIP_LEFT_RIGHT)
+
+class Rotate_270(object):
+    def __call__(self,img, mask):
+        return img.transpose(Image.FLIP_TOP_BOTTOM).transpose(Image.TRANSPOSE),mask.transpose(Image.FLIP_TOP_BOTTOM).transpose(Image.TRANSPOSE)
 
 
 class FreeScale(object):
@@ -122,3 +149,4 @@ class ChangeLabel(object):
     def __call__(self, mask):
         mask[mask == self.ori_label] = self.new_label
         return mask
+
