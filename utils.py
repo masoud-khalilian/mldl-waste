@@ -11,6 +11,7 @@ from PIL import Image
 from thop import profile
 
 from models.bisenet.bisenet import BiSeNet
+from models.bisenet.bisenetResnet import BiSeNetResnet
 from models.bisenet.bisenet_f_f import BiSeNet_f_f
 from models.bisenet.bisenet_f_h import BiSeNet_f_h
 from models.bisenet.bisenet_h_f import BiSeNet_h_f
@@ -155,11 +156,12 @@ def selectModel(model_name):
         'bisenet-f-h': BiSeNet_f_h,  # BiSeNet with fewer encoder and higher decoder
         'bisenet-h-f': BiSeNet_h_f,  # BiSeNet with higher encoder and fewer decoder
         'bisenet-h-h': BiSeNet_h_h,  # BiSeNet with higher encoder and higher decoder
+        'bisenet-resnet18': BiSeNetResnet,
         'enet': ENet,  # ENet with the actual class name
         'enet-f-f': ENet_f_f,  # ENet with fewer encoder and fewer decoder
         'enet-f-h': ENet_f_h,  # ENet with fewer encoder and higher decoder
         'enet-h-f': ENet_h_f,  # ENet with higher encoder and fewer decoder
-        'enet-h-h': ENet_h_h  # ENet with higher encoder and higher decoder
+        'enet-h-h': ENet_h_h,  # ENet with higher encoder and higher decoder
     }
 
     model = options[model_name]()
@@ -168,7 +170,6 @@ def selectModel(model_name):
 
 def count_your_model(model):
     # your rule here
-
     input = torch.randn(16, 3, 224, 448, device='cuda:0')
     macs, params = profile(model, inputs=(input,))
     return macs, params

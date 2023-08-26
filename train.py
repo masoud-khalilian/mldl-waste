@@ -40,9 +40,10 @@ def main():
     torch.backends.cudnn.benchmark = True
 
     net = []
-
     net = selectModel(cfg.MODEL.NAME)
 
+    teacher_net = []  # for knowledge distillation
+    teacher_net = selectModel('bisenet-resnet18')
     # if cfg.TRAIN.STAGE == 'all':
     #     net = ENet(only_encode=False)
     #     if cfg.TRAIN.PRETRAINED_ENCODER != '':
@@ -59,36 +60,42 @@ def main():
 
     net.train()
 
+    if cfg.TRAIN.USE_DISTILLATION:
+        bisenet_wight = torch.load(cfg.TRAIN.TEACHER_PATH)
+        teacher_net.load_state_dict(bisenet_wight)
+        teacher_net = net.cuda()
+        teacher_net.eval()
+
     if cfg.DATA.NUM_CLASSES == 1:
         criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
     else:
         criterion = torch.nn.CrossEntropyLoss().cuda()  # Multiclass Classification
-    
-    print(criterion)
-    optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR,
-                           weight_decay=cfg.TRAIN.WEIGHT_DECAY)
-    scheduler = StepLR(
-        optimizer, step_size=cfg.TRAIN.NUM_EPOCH_LR_DECAY, gamma=cfg.TRAIN.LR_DECAY)
+
+    print('criterion', criterion)
+    optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
+    scheduler = StepLR(optimizer, step_size=cfg.TRAIN.NUM_EPOCH_LR_DECAY, gamma=cfg.TRAIN.LR_DECAY)
+
     _t = {'train time': Timer(), 'val time': Timer()}
     print("base line validation:")
     validate(val_loader, net, criterion, optimizer, -1, restore_transform)
-
     print("===========================================================")
-    print(
-        f'start training at=> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f'start training at=> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+
     for epoch in range(cfg.TRAIN.MAX_EPOCH):
         _t['train time'].tic()
-        train(train_loader, net, criterion, optimizer, epoch)
+
+        if cfg.TRAIN.USE_DISTILLATION is not True:
+            train(train_loader, net, criterion, optimizer, epoch)
+        else:
+            train_knowledge_distillation(train_loader, net, teacher_net, criterion, optimizer, epoch)
+
         scheduler.step()
         _t['train time'].toc(average=False)
-        print('Epoch {} - Training time: {:.2f}s'.format(epoch +
-                                                         1, _t['train time'].diff))
-
+        print('Epoch {} - Training time: {:.2f}s'.format(epoch + 1, _t['train time'].diff))
         _t['val time'].tic()
         validate(val_loader, net, criterion, optimizer, epoch, restore_transform)
         _t['val time'].toc(average=False)
-        print('Epoch {} - Validation time: {:.2f}s'.format(epoch +
-                                                           1, _t['val time'].diff))
+        print('Epoch {} - Validation time: {:.2f}s'.format(epoch + 1, _t['val time'].diff))
 
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = count_your_model(net)
@@ -112,7 +119,6 @@ def train(train_loader, net, criterion, optimizer, epoch):
 
         loss.backward()
         optimizer.step()
-        
 
 
 def validate(val_loader, net, criterion, optimizer, epoch, restore):
@@ -163,6 +169,35 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
         print('[mean iu %.4f]' % (iou_ / len(val_loader)))
     net.train()
     criterion.cuda()
+
+
+def train_knowledge_distillation(train_loader, studnet_net, teacher_net, criterion, optimizer, epoch):
+    T = 2
+    soft_target_loss_weight = 0.50
+    ce_loss_weight = 0.50
+    for i, data in enumerate(train_loader, 0):
+        inputs, labels = data
+        inputs = Variable(inputs).cuda()
+        labels = Variable(labels).cuda()
+        optimizer.zero_grad()
+        with torch.no_grad():
+            teacher_logits = teacher_net(inputs)
+        student_logits = studnet_net(inputs)
+
+        # Soften the student logits by applying softmax first and log() second
+        soft_targets = nn.functional.softmax(teacher_logits / T, dim=-1)
+        soft_prob = nn.functional.log_softmax(student_logits / T, dim=-1)
+        soft_targets_loss = -torch.sum(soft_targets * soft_prob) / soft_prob.size()[0] * (T ** 2)
+
+        label_loss = criterion(student_logits, labels)
+        # if cfg.DATA.NUM_CLASSES == 1:
+        #     loss = criterion(outputs, labels.unsqueeze(1).float())
+        # else:
+        #     loss = criterion(outputs, labels)
+        loss = soft_target_loss_weight * soft_targets_loss + ce_loss_weight * label_loss
+
+        loss.backward()
+        optimizer.step()
 
 
 if __name__ == '__main__':

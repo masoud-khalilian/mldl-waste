@@ -3,7 +3,6 @@ from easydict import EasyDict as edict
 import time
 import torch
 
-
 # init
 __C = edict()
 
@@ -24,28 +23,27 @@ __C.DATA.NUM_CLASSES = 5
 __C.DATA.IGNORE_LABEL = 255
 __C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
 
-
 __C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 # ------------------------------MODEL------------------------
 
-__C.MODEL.NAME = 'enet-f-f'  # options are enet, icnet, bisenet
-
+__C.MODEL.NAME = 'enet'  # options are enet, icnet, bisenet
 
 # ------------------------------TRAIN------------------------
 
 # stage
 __C.TRAIN.STAGE = 'all'  # encoder or all for enet
 __C.TRAIN.PRETRAINED_ENCODER = ''  # Path of the pretrained encoder
-
+# boolean the teacher model path must be defined
+__C.TRAIN.USE_DISTILLATION = False
+__C.TRAIN.TEACHER_PATH = './teacher_path'
 # input setting
 
 __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
-__C.TRAIN.AUGMENTATION = "T2" #can take values T1,T2,T3, or none
+__C.TRAIN.AUGMENTATION = "T2"  # can take values T1,T2,T3, or none
 __C.TRAIN.PRETRAINING = False
- 
-__C.TRAIN.GPU_ID = [0]
 
+__C.TRAIN.GPU_ID = [0]
 
 __C.TRAIN.RESUME = ''  # model path
 
@@ -56,7 +54,7 @@ __C.TRAIN.NUM_EPOCH_LR_DECAY = 1  # epoches
 
 __C.TRAIN.WEIGHT_DECAY = 2e-4
 
-__C.TRAIN.MAX_EPOCH = 200
+__C.TRAIN.MAX_EPOCH = 5
 
 # output
 __C.TRAIN.PRINT_FREQ = 10
@@ -64,11 +62,10 @@ __C.TRAIN.PRINT_FREQ = 10
 now = time.strftime("%y-%m-%d_%H-%M-%S", time.localtime())
 
 __C.TRAIN.EXP_NAME = now \
-    + '_' + __C.TRAIN.STAGE + '_ENet'  \
-    + '_' + __C.DATA.DATASET \
-    + '_' + str(__C.TRAIN.IMG_SIZE) \
-    + '_lr_' + str(__C.TRAIN.LR)
-
+                     + '_' + __C.TRAIN.STAGE + '_ENet' \
+                     + '_' + __C.DATA.DATASET \
+                     + '_' + str(__C.TRAIN.IMG_SIZE) \
+                     + '_lr_' + str(__C.TRAIN.LR)
 
 __C.TRAIN.LABEL_WEIGHT = torch.FloatTensor([1, 1])
 
@@ -87,8 +84,10 @@ __C.TEST.GPU_ID = 0
 
 __C.VIS.SAMPLE_RATE = 0
 
-__C.VIS.PALETTE_LABEL_COLORS = [128, 64, 128, 244, 35, 232, 70, 70, 70, 102, 102, 156, 190, 153, 153, 153, 153, 153, 250, 170, 30,
-                                220, 220, 0, 107, 142, 35, 152, 251, 152, 70, 130, 180, 220, 20, 60, 255, 0, 0, 0, 0, 142, 0, 0, 70,
+__C.VIS.PALETTE_LABEL_COLORS = [128, 64, 128, 244, 35, 232, 70, 70, 70, 102, 102, 156, 190, 153, 153, 153, 153, 153,
+                                250, 170, 30,
+                                220, 220, 0, 107, 142, 35, 152, 251, 152, 70, 130, 180, 220, 20, 60, 255, 0, 0, 0, 0,
+                                142, 0, 0, 70,
                                 0, 60, 100, 0, 80, 100, 0, 0, 230, 119, 11, 32]
 
 # ------------------------------MODEL------------------------
