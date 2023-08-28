@@ -33,14 +33,16 @@ __C.MODEL.NAME = 'enet'  # options are enet, icnet, bisenet
 # stage
 __C.TRAIN.STAGE = 'all'  # encoder or all for enet
 __C.TRAIN.PRETRAINED_ENCODER = ''  # Path of the pretrained encoder
-
+# boolean the teacher model path must be defined
+__C.TRAIN.USE_DISTILLATION = False
+__C.TRAIN.TEACHER_PATH = './trained_model_bisenet_resnet18.pth'
 # input setting
 
 __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
 __C.TRAIN.AUGMENTATION = "T2"  # can take values T1,T2,T3, or none
 __C.TRAIN.PRETRAINING = False
-__C.TRAIN.MULTI_CLASS_LOSS = 'focal'  # options : 'focal','cross_entropy','weighted_cross_entropy'
+__C.TRAIN.MULTI_CLASS_LOSS = 'cross_entropy'  # options : 'focal','cross_entropy','weighted_cross_entropy'
 
 __C.TRAIN.GPU_ID = [0]
 
@@ -53,7 +55,7 @@ __C.TRAIN.NUM_EPOCH_LR_DECAY = 1  # epoches
 
 __C.TRAIN.WEIGHT_DECAY = 2e-4
 
-__C.TRAIN.MAX_EPOCH = 6
+__C.TRAIN.MAX_EPOCH = 5
 
 # output
 __C.TRAIN.PRINT_FREQ = 10
