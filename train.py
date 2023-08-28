@@ -66,11 +66,7 @@ def main():
         teacher_net = net.cuda()
         teacher_net.eval()
 
-    if cfg.DATA.NUM_CLASSES == 1:
-        criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
-    else:
-        criterion = torch.nn.CrossEntropyLoss().cuda()  # Multiclass Classification
-
+    criterion = get_criterion(num_classes=cfg.DATA.NUM_CLASSES, loss_func=cfg.TRAIN.MULTI_CLASS_LOSS)
     print('criterion', criterion)
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
     scheduler = StepLR(optimizer, step_size=cfg.TRAIN.NUM_EPOCH_LR_DECAY, gamma=cfg.TRAIN.LR_DECAY)
@@ -138,24 +134,18 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
                 outputs[outputs > 0.5] = 1
                 outputs[outputs <= 0.5] = 0
                 prediction = outputs.squeeze_(1).data.cpu().numpy()
-                res, _ = calculate_mean_iu(prediction,
-                                           labels.data.cpu().numpy(),
-                                           2)
+                res, _ = calculate_mean_iu(prediction, labels.data.cpu().numpy(), 2)
                 iou_ += res
             else:
                 # For multi-classification
                 prediction = outputs.argmax(dim=1).data.cpu().numpy()
-                res, cls_iu = calculate_mean_iu(prediction,
-                                                labels.data.cpu().numpy(),
-                                                cfg.DATA.NUM_CLASSES)
+                res, cls_iu = calculate_mean_iu(prediction, labels.data.cpu().numpy(), cfg.DATA.NUM_CLASSES)
                 iou_ += res
                 cls_ius = [sum(x) for x in zip(cls_ius, cls_iu)]
 
             if epoch == 1 or epoch == 99:
                 if vi == 0:
-                    save_images(inputs.data.cpu().numpy(),
-                                prediction,
-                                labels.data.cpu().numpy(), epoch, './images')
+                    save_images(inputs.data.cpu().numpy(), prediction, labels.data.cpu().numpy(), epoch, './images')
 
     if cfg.DATA.NUM_CLASSES == 1:
         print('[mean iu %.4f]' % (iou_ / len(val_loader)))

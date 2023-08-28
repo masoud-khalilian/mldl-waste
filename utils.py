@@ -26,6 +26,7 @@ from models.icnet.icnet_f_f import ICNet_f_f
 from models.icnet.icnet_f_h import ICNet_f_h
 from models.icnet.icnet_h_f import ICNet_h_f
 from models.icnet.icnet_h_h import ICNet_h_h
+from focal_loss import FocalLoss
 
 
 def weights_init_kaiming(m):
@@ -192,3 +193,23 @@ def save_images(arr: np.ndarray, prediction, lables, epoch, path: str = './image
     for i in range(prediction.shape[0]):
         colorized_mask = colorize_mask(prediction[i])
         colorized_mask.save(f"{path}/epoch_{epoch}_prediction_{i}.png")
+
+
+def get_criterion(num_classes, loss_func):
+    if num_classes == 1:
+        criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
+
+    else:
+        if loss_func == 'cross_entropy':
+            criterion = torch.nn.CrossEntropyLoss().cuda()  # Multiclass Classification
+
+        if loss_func == 'weighted_cross_entropy':
+            class_weights = [1.0, 5.0, 5.0, 5.0, 5.0]
+            weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
+            criterion = nn.CrossEntropyLoss(weight=weight_tensor).cuda()
+
+        if loss_func == 'focal':
+            class_weights = [1.0, 5.0, 5.0, 5.0, 5.0]
+            criterion = FocalLoss(alpha=class_weights, gamma=2.0).cuda()
+
+    return criterion

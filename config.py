@@ -42,6 +42,7 @@ __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
 __C.TRAIN.AUGMENTATION = "T2"  # can take values T1,T2,T3, or none
 __C.TRAIN.PRETRAINING = False
+__C.TRAIN.MULTI_CLASS_LOSS = 'focal'  # options : 'focal','cross_entropy','weighted_cross_entropy'
 
 __C.TRAIN.GPU_ID = [0]
 
