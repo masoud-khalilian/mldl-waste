@@ -26,7 +26,7 @@ __C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
 __C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 # ------------------------------MODEL------------------------
 
-__C.MODEL.NAME = 'enet-f-f'  # options are enet, icnet, bisenet
+__C.MODEL.NAME = 'enet'  # options are enet, icnet, bisenet
 
 # ------------------------------TRAIN------------------------
 
@@ -40,7 +40,7 @@ __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
 __C.TRAIN.AUGMENTATION = "T2"  # can take values T1,T2,T3, or none
 __C.TRAIN.PRETRAINING = False
-__C.TRAIN.MULTI_CLASS_LOSS = 'focal'  # options : 'focal','cross_entropy'
+__C.TRAIN.MULTI_CLASS_LOSS = 'focal'  # options : 'focal','cross_entropy','weighted_cross_entropy'
 
 __C.TRAIN.GPU_ID = [0]
 
@@ -53,7 +53,7 @@ __C.TRAIN.NUM_EPOCH_LR_DECAY = 1  # epoches
 
 __C.TRAIN.WEIGHT_DECAY = 2e-4
 
-__C.TRAIN.MAX_EPOCH = 200
+__C.TRAIN.MAX_EPOCH = 6
 
 # output
 __C.TRAIN.PRINT_FREQ = 10

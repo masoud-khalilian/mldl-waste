@@ -17,7 +17,6 @@ import pdb
 import numpy as np
 
 from config import cfg
-from focal_loss import FocalLoss
 from loading_data import loading_data
 from utils import *
 from timer import Timer
@@ -60,14 +59,7 @@ def main():
 
     net.train()
 
-    if cfg.DATA.NUM_CLASSES == 1:
-        criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
-    else:
-        if cfg.TRAIN.MULTI_CLASS_LOSS == 'cross_entropy':
-            criterion = torch.nn.CrossEntropyLoss().cuda()  # Multiclass Classification
-        else:
-            class_weights = [1.0, 5.0, 5.0, 5.0, 5.0]
-            criterion = FocalLoss(alpha=class_weights, gamma=2.0).cuda()
+    criterion = get_criterion(num_classes=cfg.DATA.NUM_CLASSES, loss_func=cfg.TRAIN.MULTI_CLASS_LOSS)
 
     print(criterion)
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR,
