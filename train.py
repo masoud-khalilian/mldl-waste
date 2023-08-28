@@ -59,11 +59,8 @@ def main():
 
     net.train()
 
-    if cfg.DATA.NUM_CLASSES == 1:
-        criterion = torch.nn.BCEWithLogitsLoss().cuda()  # Binary Classification
-    else:
-        criterion = torch.nn.CrossEntropyLoss().cuda()  # Multiclass Classification
-    
+    criterion = get_criterion(num_classes=cfg.DATA.NUM_CLASSES, loss_func=cfg.TRAIN.MULTI_CLASS_LOSS)
+
     print(criterion)
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR,
                            weight_decay=cfg.TRAIN.WEIGHT_DECAY)
@@ -112,7 +109,6 @@ def train(train_loader, net, criterion, optimizer, epoch):
 
         loss.backward()
         optimizer.step()
-        
 
 
 def validate(val_loader, net, criterion, optimizer, epoch, restore):
