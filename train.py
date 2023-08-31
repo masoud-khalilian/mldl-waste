@@ -152,7 +152,7 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
     else:
         mean_ius = [x / len(val_loader) for x in cls_ius]
         print("------------------------------------------------------")
-        print("|    none   |   paper   |  bottle  |   aluminium    |  Nylon  |")
+        print("|     none   |    paper   |   bottle    | aluminium  |   Nylon    |")
         print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |   %.4f   |" % (
             mean_ius[0], mean_ius[1], mean_ius[2], mean_ius[3], mean_ius[4]))
         print("------------------------------------------------------")

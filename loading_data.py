@@ -20,18 +20,18 @@ def loading_data():
         if cfg.TRAIN.AUGMENTATION == "T2":
             train_simul_transform = own_transforms.Compose([
                 own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
+                own_transforms.RandomRotate(),
                 own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
                 own_transforms.ColorJitter(),
-                own_transforms.RandomHorizontallyFlip(),
-                own_transforms.RandomResizedCrop(0.5)
+                own_transforms.RandomHorizontallyFlip()
     ])
         if cfg.TRAIN.AUGMENTATION == "T3":
             train_simul_transform = own_transforms.Compose([
                 own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
-                own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
+                own_transforms.RandomRotate(),
+                own_transforms.RandomResizedCrop(),
                 own_transforms.ColorJitter(),
-                own_transforms.RandomHorizontallyFlip(),
-                own_transforms.RandomResizedCrop(0.75)
+                own_transforms.RandomHorizontallyFlip()
     ])
         else:
             train_simul_transform = own_transforms.Compose([
