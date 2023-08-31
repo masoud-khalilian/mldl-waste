@@ -34,14 +34,14 @@ __C.MODEL.NAME = 'icnet'  # options are enet, icnet, bisenet
 __C.TRAIN.STAGE = 'all'  # encoder or all for enet
 __C.TRAIN.PRETRAINED_ENCODER = ''  # Path of the pretrained encoder
 __C.TRAIN.USE_PRUNING = False  # boolean - define pretrained path - put model name 'icnet'
-__C.TRAIN.PRETRAINED = './trained_model_icnet_multi.pth'  # Path of the pretrained encoder
+__C.TRAIN.PRETRAINED = './trained_model_icnet_multi.pth'  # Path of the pretrained
 __C.TRAIN.USE_DISTILLATION = False  # boolean the teacher model path must be defined
 __C.TRAIN.TEACHER_PATH = './trained_model_bisenet_resnet18.pth'
 # input setting
 
 __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
-__C.TRAIN.AUGMENTATION = "T2"  # can take values T1,T2,T3, or none
+__C.TRAIN.AUGMENTATION = "T3"  # can take values T1,T2,T3, or none
 __C.TRAIN.PRETRAINING = False
 __C.TRAIN.MULTI_CLASS_LOSS = 'cross_entropy'  # options : 'focal','cross_entropy','weighted_cross_entropy'
 
