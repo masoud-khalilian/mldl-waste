@@ -26,15 +26,16 @@ __C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
 __C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 # ------------------------------MODEL------------------------
 
-__C.MODEL.NAME = 'enet'  # options are enet, icnet, bisenet
+__C.MODEL.NAME = 'icnet'  # options are enet, icnet, bisenet
 
 # ------------------------------TRAIN------------------------
 
 # stage
 __C.TRAIN.STAGE = 'all'  # encoder or all for enet
 __C.TRAIN.PRETRAINED_ENCODER = ''  # Path of the pretrained encoder
-# boolean the teacher model path must be defined
-__C.TRAIN.USE_DISTILLATION = False
+__C.TRAIN.USE_PRUNING = False  # boolean - define pretrained path - put model name 'icnet'
+__C.TRAIN.PRETRAINED = './trained_model_icnet_multi.pth'  # Path of the pretrained encoder
+__C.TRAIN.USE_DISTILLATION = False  # boolean the teacher model path must be defined
 __C.TRAIN.TEACHER_PATH = './trained_model_bisenet_resnet18.pth'
 # input setting
 
