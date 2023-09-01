@@ -5,6 +5,7 @@ from ptflops import get_model_complexity_info
 
 import torch
 from torch import optim
+from torch.quantization import quantize_fx
 from torch.autograd import Variable
 from torch.nn import NLLLoss2d
 from torch.nn.utils import prune
@@ -71,8 +72,7 @@ def main():
         weights = torch.load(cfg.TRAIN.PRETRAINED)
         net.load_state_dict(weights)
 
-        # Prune the model
-        # Use L1 unstructured pruning
+        # Prune the model - Use L1 unstructured pruning
         for name, module in net.named_modules():
             # prune 90% of connections in all 2D-conv layers
             if isinstance(module, torch.nn.Conv2d):
@@ -80,8 +80,6 @@ def main():
             # prune 90% of connections in all linear layers
             elif isinstance(module, torch.nn.Linear):
                 prune.l1_unstructured(module, name='weight', amount=0.9)
-
-        print("is_pruned=>", prune.is_pruned(net))  # True
 
     criterion = get_criterion(num_classes=cfg.DATA.NUM_CLASSES, loss_func=cfg.TRAIN.MULTI_CLASS_LOSS)
     print('criterion', criterion)
@@ -96,14 +94,10 @@ def main():
 
     for epoch in range(cfg.TRAIN.MAX_EPOCH):
         _t['train time'].tic()
-
         if cfg.TRAIN.USE_DISTILLATION is not True:
             train(train_loader, net, criterion, optimizer, epoch)
-            print("is_pruned=>", prune.is_pruned(net))  # True
-
         else:
             train_knowledge_distillation(train_loader, net, teacher_net, criterion, optimizer, epoch)
-
         scheduler.step()
         _t['train time'].toc(average=False)
         print('Epoch {} - Training time: {:.2f}s'.format(epoch + 1, _t['train time'].diff))
@@ -112,13 +106,24 @@ def main():
         _t['val time'].toc(average=False)
         print('Epoch {} - Validation time: {:.2f}s'.format(epoch + 1, _t['val time'].diff))
 
+    if cfg.TRAIN.USE_QUANTIZATION:
+        # Post-Training Dynamic/Weight-only Quantization - FX Graph Mode
+        qconfig_dict = {"": torch.quantization.default_dynamic_qconfig}  # An empty key means all modules
+        example_input = (16.0, 3.0, 224.0, 448.0)
+        net.eval()
+        model_prepared = quantize_fx.prepare_fx(net, qconfig_dict, example_input)
+        model_quantized = quantize_fx.convert_fx(model_prepared)
+        net = model_quantized.cuda()
+        # The following validation line does is not ready for use
+        # validate(val_loader, net, criterion, optimizer, 0, restore_transform)
+
     for name, module in net.named_modules():
         if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear):
             prune.remove(module, 'weight')
 
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = count_your_model(net)
-    # converted macs into flops and it only shows 3 decimal points.
+    # converted macs into flops, and it only shows 3 decimal points.
     macs, params = clever_format([macs * 2, params], "%.3f")
     print('{:<30}  {:<8}'.format('GFLOPS: ', macs))
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))

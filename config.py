@@ -37,6 +37,8 @@ __C.TRAIN.USE_PRUNING = False  # boolean - define pretrained path - put model na
 __C.TRAIN.PRETRAINED = './trained_model_icnet_multi.pth'  # Path of the pretrained
 __C.TRAIN.USE_DISTILLATION = False  # boolean the teacher model path must be defined
 __C.TRAIN.TEACHER_PATH = './trained_model_bisenet_resnet18.pth'
+__C.TRAIN.USE_QUANTIZATION = False  # boolean
+
 # input setting
 
 __C.TRAIN.BATCH_SIZE = 16  # imgs
