@@ -88,10 +88,11 @@ def main():
         scheduler.step()
         _t['train time'].toc(average=False)
         print('Epoch {} - Training time: {:.2f}s'.format(epoch + 1, _t['train time'].diff))
-        _t['val time'].tic()
-        validate(val_loader, net, criterion, optimizer, epoch, restore_transform)
-        _t['val time'].toc(average=False)
-        print('Epoch {} - Validation time: {:.2f}s'.format(epoch + 1, _t['val time'].diff))
+        if(epoch % cfg.VALIDATION_CYCLE == 0 or epoch > 180):
+            _t['val time'].tic()
+            validate(val_loader, net, criterion, optimizer, epoch, restore_transform)
+            _t['val time'].toc(average=False)
+            print('Epoch {} - Validation time: {:.2f}s'.format(epoch + 1, _t['val time'].diff))
 
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = count_your_model(net)
@@ -151,11 +152,11 @@ def validate(val_loader, net, criterion, optimizer, epoch, restore):
         print('[mean iu %.4f]' % (iou_ / len(val_loader)))
     else:
         mean_ius = [x / len(val_loader) for x in cls_ius]
-        print("------------------------------------------------------")
+        print("-------------------------------------------------------------------")
         print("|     none   |    paper   |   bottle    | aluminium  |   Nylon    |")
         print("|   %.4f   |   %.4f   |   %.4f    |   %.4f   |   %.4f   |" % (
             mean_ius[0], mean_ius[1], mean_ius[2], mean_ius[3], mean_ius[4]))
-        print("------------------------------------------------------")
+        print("-------------------------------------------------------------------")
         print('[mean iu %.4f]' % (iou_ / len(val_loader)))
     net.train()
     criterion.cuda()
