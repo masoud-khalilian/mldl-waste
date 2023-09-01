@@ -1,5 +1,6 @@
 # code from https://github.com/liminn/ICNet-pytorch
 """Image Cascade Network"""
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from config import cfg
@@ -103,30 +104,24 @@ class ResNetV1b(nn.Module):
             )
         else:
             self.conv1 = nn.Conv2d(3, 64, 7, 2, 3, bias=False)
+
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(True)
         self.maxpool = nn.MaxPool2d(3, 2, 1)
-        self.layer1 = self._make_layer(
-            block, 64, layers[0], norm_layer=norm_layer)
-        self.layer2 = self._make_layer(
-            block, 128, layers[1], stride=2, norm_layer=norm_layer)
+        self.layer1 = self._make_layer(block, 64, layers[0], norm_layer=norm_layer)
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, norm_layer=norm_layer)
         if dilated:
-            self.layer3 = self._make_layer(
-                block, 256, layers[2], stride=1, dilation=2, norm_layer=norm_layer)
-            self.layer4 = self._make_layer(
-                block, 512, layers[3], stride=1, dilation=4, norm_layer=norm_layer)
+            self.layer3 = self._make_layer(block, 256, layers[2], stride=1, dilation=2, norm_layer=norm_layer)
+            self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation=4, norm_layer=norm_layer)
         else:
-            self.layer3 = self._make_layer(
-                block, 256, layers[2], stride=2, norm_layer=norm_layer)
-            self.layer4 = self._make_layer(
-                block, 512, layers[3], stride=2, norm_layer=norm_layer)
+            self.layer3 = self._make_layer(block, 256, layers[2], stride=2, norm_layer=norm_layer)
+            self.layer4 = self._make_layer(block, 512, layers[3], stride=2, norm_layer=norm_layer)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(
-                    m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -142,8 +137,7 @@ class ResNetV1b(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, planes *
-                          block.expansion, 1, stride, bias=False),
+                nn.Conv2d(self.inplanes, planes * block.expansion, 1, stride, bias=False),
                 norm_layer(planes * block.expansion),
             )
 
@@ -182,10 +176,9 @@ class ResNetV1b(nn.Module):
 
 
 def resnet50_v1s(pretrained=False, root='~/.torch/models', **kwargs):
-    model = ResNetV1b(BottleneckV1b, [3, 4, 6, 3], deep_stem=True, **kwargs)
+    model = ResNetV1b(BottleneckV1b, [1, 2, 3, 1], deep_stem=True, **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(
-            get_resnet_file('resnet50')), strict=False)
+        model.load_state_dict(torch.load(get_resnet_file('resnet50')), strict=False)
     return model
 
 
@@ -207,9 +200,7 @@ class SegBaseModel(nn.Module):
         dilated = True
         self.nclass = nclass
         if backbone == 'resnet50':
-            self.pretrained = resnet50_v1s(
-                pretrained=pretrained_base, dilated=dilated, **kwargs)
-
+            self.pretrained = resnet50_v1s(pretrained=pretrained_base, dilated=dilated, **kwargs)
         else:
             raise RuntimeError('unknown backbone: {}'.format(backbone))
 
@@ -239,12 +230,11 @@ class ICNet_f_h(SegBaseModel):
     """Image Cascade Network"""
 
     def __init__(self, nclass=cfg.DATA.NUM_CLASSES, backbone='resnet50', pretrained_base=False):
-        super(ICNet_f_h, self).__init__(
-            nclass, backbone, pretrained_base=pretrained_base)
+        super(ICNet_f_h, self).__init__(nclass, backbone, pretrained_base=pretrained_base)
         self.conv_sub1 = nn.Sequential(
             _ConvBNReLU(3, 32, 3, 2),
             _ConvBNReLU(32, 32, 3, 2),
-            _ConvBNReLU(32, 64, 3, 2)
+            # _ConvBNReLU(32, 64, 3, 2) removed to decrease the size of the encoder
         )
         self.ppm = PyramidPoolingModule()
         self.head = _ICHead(nclass)
@@ -252,11 +242,9 @@ class ICNet_f_h(SegBaseModel):
 
     def forward(self, x):
         x_sub1 = self.conv_sub1(x)
-        x_sub2 = F.interpolate(x, scale_factor=0.5,
-                               mode='bilinear', align_corners=True)
+        x_sub2 = F.interpolate(x, scale_factor=0.5, mode='bilinear', align_corners=True)
         _, x_sub2, _, _ = self.base_forward(x_sub2)
-        x_sub4 = F.interpolate(x, scale_factor=0.25,
-                               mode='bilinear', align_corners=True)
+        x_sub4 = F.interpolate(x, scale_factor=0.25, mode='bilinear', align_corners=True)
         _, _, _, x_sub4 = self.base_forward(x_sub4)
         x_sub4 = self.ppm(x_sub4)
         outputs = self.head(x_sub1, x_sub2, x_sub4)
@@ -275,8 +263,7 @@ class PyramidPoolingModule(nn.Module):
         height, width = input.shape[2:]
         for bin_size in self.pyramids:
             x = F.adaptive_avg_pool2d(input, output_size=bin_size)
-            x = F.interpolate(x, size=(height, width),
-                              mode='bilinear', align_corners=True)
+            x = F.interpolate(x, size=(height, width), mode='bilinear', align_corners=True)
             feat = feat + x
         return feat
 
@@ -284,13 +271,9 @@ class PyramidPoolingModule(nn.Module):
 class _ICHead(nn.Module):
     def __init__(self, nclass, norm_layer=nn.BatchNorm2d, **kwargs):
         super(_ICHead, self).__init__()
-        # self.cff_12 = CascadeFeatureFusion(512, 64, 128, nclass, norm_layer, **kwargs)
-        self.cff_12 = CascadeFeatureFusion(
-            128, 64, 128, nclass, norm_layer, **kwargs)
-        self.cff_24 = CascadeFeatureFusion(
-            2048, 512, 128, nclass, norm_layer, **kwargs)
-
-        self.conv_cls = nn.Conv2d(128, nclass, 1, bias=False)
+        self.cff_12 = CascadeFeatureFusion(1024, 32, 256, nclass, norm_layer, **kwargs)
+        self.cff_24 = CascadeFeatureFusion(2048, 512, 1024, nclass, norm_layer, **kwargs)
+        self.conv_cls = nn.Conv2d(256, nclass, 1, bias=False)
 
     def forward(self, x_sub1, x_sub2, x_sub4):
         outputs = list()
@@ -300,12 +283,10 @@ class _ICHead(nn.Module):
         x_cff_12, x_12_cls = self.cff_12(x_cff_24, x_sub1)
         outputs.append(x_12_cls)
 
-        up_x2 = F.interpolate(x_cff_12, scale_factor=2,
-                              mode='bilinear', align_corners=True)
+        up_x2 = F.interpolate(x_cff_12, scale_factor=2, mode='bilinear', align_corners=True)
         up_x2 = self.conv_cls(up_x2)
         outputs.append(up_x2)
-        up_x8 = F.interpolate(up_x2, scale_factor=4,
-                              mode='bilinear', align_corners=True)
+        up_x8 = F.interpolate(up_x2, scale_factor=4, mode='bilinear', align_corners=True)
         outputs.append(up_x8)
         # 1 -> 1/4 -> 1/8 -> 1/16
         outputs.reverse()
@@ -317,8 +298,7 @@ class _ConvBNReLU(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, dilation=1,
                  groups=1, norm_layer=nn.BatchNorm2d, bias=False, **kwargs):
         super(_ConvBNReLU, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size, stride, padding, dilation, groups, bias)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias)
         self.bn = norm_layer(out_channels)
         self.relu = nn.ReLU(True)
 
@@ -335,19 +315,16 @@ class CascadeFeatureFusion(nn.Module):
     def __init__(self, low_channels, high_channels, out_channels, nclass, norm_layer=nn.BatchNorm2d, **kwargs):
         super(CascadeFeatureFusion, self).__init__()
         self.conv_low = nn.Sequential(
-            nn.Conv2d(low_channels, out_channels, 3,
-                      padding=2, dilation=2, bias=False),
+            nn.Conv2d(low_channels, out_channels, 3, padding=2, dilation=2, bias=False),
             norm_layer(out_channels)
         )
         self.conv_high = nn.Sequential(
-            nn.Conv2d(high_channels, out_channels, 1, bias=False),
-            norm_layer(out_channels)
+            nn.Conv2d(high_channels, out_channels, 1, bias=False), norm_layer(out_channels)
         )
         self.conv_low_cls = nn.Conv2d(out_channels, nclass, 1, bias=False)
 
     def forward(self, x_low, x_high):
-        x_low = F.interpolate(x_low, size=x_high.size()[2:],
-                              mode='bilinear', align_corners=True)
+        x_low = F.interpolate(x_low, size=x_high.size()[2:], mode='bilinear', align_corners=True)
         x_low = self.conv_low(x_low)
         x_high = self.conv_high(x_high)
         x = x_low + x_high
