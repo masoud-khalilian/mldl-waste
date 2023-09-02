@@ -40,7 +40,8 @@ __C.TRAIN.TEACHER_PATH = './trained_model_bisenet_resnet18.pth'
 
 __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
-__C.TRAIN.AUGMENTATION = "T3"  # can take values T1,T2,T3, or none
+__C.VALIDATION_CYCLE = 5
+__C.TRAIN.AUGMENTATION = "T2"  # can take values T1,T2,T3, or none
 __C.TRAIN.PRETRAINING = False
 __C.TRAIN.MULTI_CLASS_LOSS = 'cross_entropy'  # options : 'focal','cross_entropy','weighted_cross_entropy'
 
