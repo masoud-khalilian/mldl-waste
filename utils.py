@@ -204,12 +204,12 @@ def get_criterion(num_classes, loss_func):
             criterion = torch.nn.CrossEntropyLoss().cuda()  # Multiclass Classification
 
         if loss_func == 'weighted_cross_entropy':
-            class_weights = [1.0, 5.0, 5.0, 5.0, 5.0]
+            class_weights = [1.0, 2.214, 2.214, 2.89, 2.75]
             weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
             criterion = nn.CrossEntropyLoss(weight=weight_tensor).cuda()
 
         if loss_func == 'focal':
-            class_weights = [1.0, 5.0, 5.0, 5.0, 5.0]
+            class_weights = [1.0, 2.214, 2.214, 2.89, 2.75]
             criterion = FocalLoss(alpha=class_weights, gamma=2.0).cuda()
 
     return criterion
