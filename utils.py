@@ -9,6 +9,8 @@ from config import cfg
 from datetime import datetime
 from PIL import Image
 from thop import profile
+from loading_data import loading_data
+from taco.taco_loader import loading_taco_data
 
 from models.bisenet.bisenet import BiSeNet
 from models.bisenet.bisenetResnet import BiSeNetResnet
@@ -213,3 +215,10 @@ def get_criterion(num_classes, loss_func):
             criterion = FocalLoss(alpha=class_weights, gamma=2.0).cuda()
 
     return criterion
+
+
+def select_data_loading(dataset_name='waste'):
+    if dataset_name == 'waste':
+        return loading_data
+    if dataset_name == 'taco-waste':
+        return loading_taco_data
