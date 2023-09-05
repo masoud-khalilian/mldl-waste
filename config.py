@@ -17,23 +17,23 @@ __C.VIS = edict()
 
 # ------------------------------DATA------------------------
 
-# __C.DATA.DATASET = 'waste'  # dataset or taco-waste
-# __C.DATA.DATA_PATH = 'dataset/'
-# __C.DATA.NUM_CLASSES = 5
-# __C.DATA.IGNORE_LABEL = 255
-# __C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
-# __C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+__C.DATA.DATASET = 'waste'  # dataset or taco-waste
+__C.DATA.DATA_PATH = '/content/dataset/'
+__C.DATA.NUM_CLASSES = 5
+__C.DATA.IGNORE_LABEL = 255
+__C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
+__C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 # ------------------------------TACO DATA------------------------
 
 # use this section for taco dataset and comment the above section
-__C.DATA.DATASET = 'taco-waste'  # dataset or taco-waste
-__C.DATA.DATA_PATH = 'TACO/data'
-__C.DATA.NUM_CLASSES = 20
-__C.DATA.IGNORE_LABEL = 255
-__C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
-__C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+# __C.DATA.DATASET = 'taco-waste'  # dataset or taco-waste
+# __C.DATA.DATA_PATH = 'TACO/data'
+# __C.DATA.NUM_CLASSES = 20
+# __C.DATA.IGNORE_LABEL = 255
+# __C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
+# __C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 # ------------------------------MODEL------------------------
 
@@ -51,7 +51,7 @@ __C.TRAIN.TEACHER_PATH = './trained_model_bisenet_resnet18.pth'
 
 __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
-__C.TRAIN.AUGMENTATION = "T2"  # can take values T1,T2,T3, or none
+__C.TRAIN.AUGMENTATION = 'T1'  # can take values string T1,T2,T3, or None
 __C.TRAIN.PRETRAINING = False
 __C.TRAIN.MULTI_CLASS_LOSS = 'cross_entropy'  # options : 'focal','cross_entropy','weighted_cross_entropy'
 

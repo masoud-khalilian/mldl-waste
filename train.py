@@ -27,7 +27,7 @@ writer = SummaryWriter(cfg.TRAIN.EXP_PATH + '/' + exp_name)
 
 pil_to_tensor = standard_transforms.ToTensor()
 
-train_loader, val_loader, restore_transform = select_data_loading(cfg.DATA.DATASET)
+train_loader, val_loader, restore_transform = select_data_loading(cfg.DATA.DATASET)()
 
 
 def main():

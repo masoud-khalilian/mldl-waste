@@ -1,61 +1,48 @@
-import torchvision.transforms as standard_transforms
+import torchvision.transforms as std_trans  # standard_transforms
 from torch.utils.data import DataLoader
-import transforms as own_transforms
-from resortit import resortit
-from config import cfg
 from torch.utils.data import ConcatDataset
 
+from config import cfg
+from resortit import resortit
+import transforms as o_t  # own_transformer
 
 
 def loading_data():
     mean_std = cfg.DATA.MEAN_STD
-    if not cfg.TRAIN.PRETRAINING:
-        Augmentations = {"T1":[own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),own_transforms.ColorJitter(),own_transforms.RandomHorizontallyFlip()],
-                         "T2":[own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),own_transforms.RandomRotate(),own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),own_transforms.ColorJitter(),own_transforms.RandomHorizontallyFlip()],
-                         "T3":[own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),own_transforms.RandomRotate(),own_transforms.RandomResizedCrop(),own_transforms.ColorJitter(),own_transforms.RandomHorizontallyFlip()],
-                         None:[own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),own_transforms.RandomHorizontallyFlip()]}
-        transforms = []
-        for i in Augmentations[cfg.TRAIN.AUGMENTATION]:
-            transforms.append(i)
-        train_simul_transform = own_transforms.Compose(transforms)
-        
-    val_simul_transform = own_transforms.Compose([
-        own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0] / 0.875)),
-        own_transforms.CenterCrop(cfg.TRAIN.IMG_SIZE)
-    ])
-    img_transform = standard_transforms.Compose([
-        standard_transforms.ToTensor(),
-        standard_transforms.Normalize(*mean_std)
-    ])
-    target_transform = standard_transforms.Compose([
-        own_transforms.MaskToTensor(),
-        own_transforms.ChangeLabel(cfg.DATA.IGNORE_LABEL, cfg.DATA.NUM_CLASSES - 1)
-    ])
-    restore_transform = standard_transforms.Compose([
-        own_transforms.DeNormalize(*mean_std),
-        standard_transforms.ToPILImage()
-    ])
+    image_size = cfg.TRAIN.IMG_SIZE
+    ignore_label = cfg.DATA.IGNORE_LABEL
+    number_classes = cfg.DATA.NUM_CLASSES
+
+    val_sim_t = o_t.Compose([o_t.Scale(int(image_size[0] / 0.875)), o_t.CenterCrop(image_size)])
+    img_t = std_trans.Compose([std_trans.ToTensor(), std_trans.Normalize(*mean_std)])
+    target_t = std_trans.Compose([o_t.MaskToTensor(), o_t.ChangeLabel(ignore_label, number_classes - 1)])
+    restore_t = std_trans.Compose([o_t.DeNormalize(*mean_std), std_trans.ToPILImage()])
 
     if cfg.TRAIN.PRETRAINING:
-        rotations = [own_transforms.Rotate_none(),own_transforms.Rotate_90(),own_transforms.Rotate_180(),own_transforms.Rotate_270()]
+        rotations = [o_t.Rotate_none, o_t.Rotate_90, o_t.Rotate_180, o_t.Rotate_270]
         train_set = []
-        for i in rotations:
-            train_simul_transform = own_transforms.Compose([
-                own_transforms.Scale(int(cfg.TRAIN.IMG_SIZE[0]/ 0.875)),
-                i,
-                own_transforms.RandomCrop(cfg.TRAIN.IMG_SIZE),
-            ])
-            set = resortit('train', simul_transform=train_simul_transform, transform=img_transform,
-                            target_transform=target_transform)
-            train_set.append(set)
+        for rotation in rotations:
+            train_sim_t = o_t.Compose([o_t.Scale(int(image_size[0] / 0.875)), rotation(), o_t.RandomCrop(image_size)])
+            rotate_item = resortit('train', simul_transform=train_sim_t, transform=img_t, target_transform=target_t)
+            train_set.append(rotate_item)
         train_set = ConcatDataset(train_set)
     else:
-        train_set = resortit('train', simul_transform=train_simul_transform, transform=img_transform,
-                           target_transform=target_transform)
-  
+        augmentations = {"T1": [o_t.Scale(int(image_size[0] / 0.875)), o_t.RandomCrop(image_size), o_t.ColorJitter(),
+                                o_t.RandomHorizontallyFlip()],
+                         "T2": [o_t.Scale(int(image_size[0] / 0.875)), o_t.RandomRotate(), o_t.RandomCrop(image_size),
+                                o_t.ColorJitter(),
+                                o_t.RandomHorizontallyFlip()],
+                         "T3": [o_t.Scale(int(image_size[0] / 0.875)), o_t.RandomRotate(), o_t.RandomResizedCrop(),
+                                o_t.ColorJitter(),
+                                o_t.RandomHorizontallyFlip()],
+                         None: [o_t.Scale(int(image_size[0] / 0.875)), o_t.RandomCrop(image_size),
+                                o_t.RandomHorizontallyFlip()]}
+
+        train_sim_t = o_t.Compose(augmentations[cfg.TRAIN.AUGMENTATION])
+        train_set = resortit('train', simul_transform=train_sim_t, transform=img_t, target_transform=target_t)
+
+    val_set = resortit('val', simul_transform=val_sim_t, transform=img_t, target_transform=target_t)
     train_loader = DataLoader(train_set, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=4, shuffle=True)
-    val_set = resortit('val', simul_transform=val_simul_transform, transform=img_transform,
-                         target_transform=target_transform)
     val_loader = DataLoader(val_set, batch_size=cfg.VAL.BATCH_SIZE, num_workers=4, shuffle=False)
 
-    return train_loader, val_loader, restore_transform
+    return train_loader, val_loader, restore_t
