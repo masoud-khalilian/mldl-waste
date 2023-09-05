@@ -78,6 +78,10 @@ class RandomResizedCrop(object):
         transform = RRC(cfg.TRAIN.IMG_SIZE, ratio = (0.5, 1))
         return transform(img),transform(mask)
     
+class Rotate_none(object):
+    def __call__(self,img,mask):
+        return img,mask 
+    
 class Rotate_90(object):
     def __call__(self,img, mask):
         return img.transpose(Image.TRANSPOSE).transpose(Image.FLIP_TOP_BOTTOM), mask.transpose(Image.TRANSPOSE).transpose(Image.FLIP_TOP_BOTTOM)
