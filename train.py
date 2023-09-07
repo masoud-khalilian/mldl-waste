@@ -5,8 +5,10 @@ from ptflops import get_model_complexity_info
 
 import torch
 from torch import optim
+from torch.quantization import quantize_fx
 from torch.autograd import Variable
 from torch.nn import NLLLoss2d
+from torch.nn.utils import prune
 from torch.optim.lr_scheduler import StepLR
 from torchvision.utils import save_image
 import torchvision.transforms as standard_transforms
@@ -44,14 +46,6 @@ def main():
 
     teacher_net = []  # for knowledge distillation
     teacher_net = selectModel('bisenet-resnet18')
-    # if cfg.TRAIN.STAGE == 'all':
-    #     net = ENet(only_encode=False)
-    #     if cfg.TRAIN.PRETRAINED_ENCODER != '':
-    #         encoder_weight = torch.load(cfg.TRAIN.PRETRAINED_ENCODER)
-    #         del encoder_weight['classifier.bias']
-    #         del encoder_weight['classifier.weight']
-    #         # pdb.set_trace()
-    #         net.encoder.load_state_dict(encoder_weight)
 
     if len(cfg.TRAIN.GPU_ID) > 1:
         net = torch.nn.DataParallel(net, device_ids=cfg.TRAIN.GPU_ID).cuda()
@@ -66,6 +60,31 @@ def main():
         teacher_net = net.cuda()
         teacher_net.eval()
 
+    if cfg.TRAIN.USE_PRUNING:
+        weights = torch.load(cfg.TRAIN.PRETRAINED)
+        net.load_state_dict(weights)
+
+        # Prune the model - Use L1 unstructured pruning
+        for name, module in net.named_modules():
+            # prune 90% of connections in all 2D-conv layers
+            if isinstance(module, torch.nn.Conv2d):
+                prune.l1_unstructured(module, name='weight', amount=0.9)
+            # prune 90% of connections in all linear layers
+            elif isinstance(module, torch.nn.Linear):
+                prune.l1_unstructured(module, name='weight', amount=0.9)
+
+    if cfg.TRAIN.TEST_QUANTIZE_MODEL:
+        # use this when running quantize model
+        # first prepare the model, so it can be able to load quantize saved model
+        qconfig_dict = {"": torch.quantization.default_dynamic_qconfig}
+        example_input = (16.0, 3.0, 224.0, 448.0)
+        net.eval()
+        model_prepared = quantize_fx.prepare_fx(net, qconfig_dict, example_input)
+        model_quantized = quantize_fx.convert_fx(model_prepared)
+        net = model_quantized.cuda()
+        weights = torch.load(cfg.TRAIN.TEST_QUANTIZE_MODEL_PATH)
+        net.load_state_dict(weights)
+
     criterion = get_criterion(num_classes=cfg.DATA.NUM_CLASSES, loss_func=cfg.TRAIN.MULTI_CLASS_LOSS)
     print('criterion', criterion)
     optimizer = optim.Adam(net.parameters(), lr=cfg.TRAIN.LR, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
@@ -79,12 +98,10 @@ def main():
 
     for epoch in range(cfg.TRAIN.MAX_EPOCH):
         _t['train time'].tic()
-
         if cfg.TRAIN.USE_DISTILLATION is not True:
             train(train_loader, net, criterion, optimizer, epoch)
         else:
             train_knowledge_distillation(train_loader, net, teacher_net, criterion, optimizer, epoch)
-
         scheduler.step()
         _t['train time'].toc(average=False)
         print('Epoch {} - Training time: {:.2f}s'.format(epoch + 1, _t['train time'].diff))
@@ -93,9 +110,22 @@ def main():
         _t['val time'].toc(average=False)
         print('Epoch {} - Validation time: {:.2f}s'.format(epoch + 1, _t['val time'].diff))
 
+    if cfg.TRAIN.USE_QUANTIZATION:
+        # Post-Training Dynamic/Weight-only Quantization - FX Graph Mode
+        qconfig_dict = {"": torch.quantization.default_dynamic_qconfig}  # An empty key means all modules
+        example_input = (16.0, 3.0, 224.0, 448.0)
+        net.eval()
+        model_prepared = quantize_fx.prepare_fx(net, qconfig_dict, example_input)
+        model_quantized = quantize_fx.convert_fx(model_prepared)
+        net = model_quantized.cuda()
+
+    # for name, module in net.named_modules():
+    #     if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear):
+    #         prune.remove(module, 'weight')
+
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = count_your_model(net)
-    # converted macs into flops and it only shows 3 decimal points.
+    # converted macs into flops, and it only shows 3 decimal points.
     macs, params = clever_format([macs * 2, params], "%.3f")
     print('{:<30}  {:<8}'.format('GFLOPS: ', macs))
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
