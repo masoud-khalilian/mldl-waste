@@ -46,14 +46,6 @@ def main():
 
     teacher_net = []  # for knowledge distillation
     teacher_net = selectModel('bisenet-resnet18')
-    # if cfg.TRAIN.STAGE == 'all':
-    #     net = ENet(only_encode=False)
-    #     if cfg.TRAIN.PRETRAINED_ENCODER != '':
-    #         encoder_weight = torch.load(cfg.TRAIN.PRETRAINED_ENCODER)
-    #         del encoder_weight['classifier.bias']
-    #         del encoder_weight['classifier.weight']
-    #         # pdb.set_trace()
-    #         net.encoder.load_state_dict(encoder_weight)
 
     if len(cfg.TRAIN.GPU_ID) > 1:
         net = torch.nn.DataParallel(net, device_ids=cfg.TRAIN.GPU_ID).cuda()
@@ -80,6 +72,18 @@ def main():
             # prune 90% of connections in all linear layers
             elif isinstance(module, torch.nn.Linear):
                 prune.l1_unstructured(module, name='weight', amount=0.9)
+
+    if cfg.TRAIN.TEST_QUANTIZE_MODEL:
+        # use this when running quantize model
+        # first prepare the model, so it can be able to load quantize saved model
+        qconfig_dict = {"": torch.quantization.default_dynamic_qconfig}
+        example_input = (16.0, 3.0, 224.0, 448.0)
+        net.eval()
+        model_prepared = quantize_fx.prepare_fx(net, qconfig_dict, example_input)
+        model_quantized = quantize_fx.convert_fx(model_prepared)
+        net = model_quantized.cuda()
+        weights = torch.load(cfg.TRAIN.TEST_QUANTIZE_MODEL_PATH)
+        net.load_state_dict(weights)
 
     criterion = get_criterion(num_classes=cfg.DATA.NUM_CLASSES, loss_func=cfg.TRAIN.MULTI_CLASS_LOSS)
     print('criterion', criterion)
@@ -114,12 +118,10 @@ def main():
         model_prepared = quantize_fx.prepare_fx(net, qconfig_dict, example_input)
         model_quantized = quantize_fx.convert_fx(model_prepared)
         net = model_quantized.cuda()
-        # The following validation line does is not ready for use
-        # validate(val_loader, net, criterion, optimizer, 0, restore_transform)
 
-    for name, module in net.named_modules():
-        if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear):
-            prune.remove(module, 'weight')
+    # for name, module in net.named_modules():
+    #     if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear):
+    #         prune.remove(module, 'weight')
 
     save_model_with_timestamp(net, cfg.TRAIN.MODEL_SAVE_PATH)
     macs, params = count_your_model(net)

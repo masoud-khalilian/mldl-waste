@@ -26,24 +26,27 @@ __C.DATA.IGNORE_LABEL_TO_TRAIN_ID = 19  # 255->19
 __C.DATA.MEAN_STD = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 # ------------------------------MODEL------------------------
 
-__C.MODEL.NAME = 'icnet'  # options are enet, icnet, bisenet
+__C.MODEL.NAME = 'enet'  # options are enet, icnet, bisenet
 
 # ------------------------------TRAIN------------------------
 
 # stage
 __C.TRAIN.STAGE = 'all'  # encoder or all for enet
 __C.TRAIN.PRETRAINED_ENCODER = ''  # Path of the pretrained encoder
-__C.TRAIN.USE_PRUNING = False  # boolean - define pretrained path - put model name 'icnet'
-__C.TRAIN.PRETRAINED = './trained_model_icnet_multi.pth'  # Path of the pretrained
 __C.TRAIN.USE_DISTILLATION = False  # boolean the teacher model path must be defined
 __C.TRAIN.TEACHER_PATH = './trained_model_bisenet_resnet18.pth'
-__C.TRAIN.USE_QUANTIZATION = False  # boolean
 
+__C.TRAIN.USE_PRUNING = False  # boolean - define pretrained path - put model name 'icnet'
+__C.TRAIN.PRETRAINED = ''  # Path of the pretrained
+
+__C.TRAIN.USE_QUANTIZATION = False  # boolean - for saving
+__C.TRAIN.TEST_QUANTIZE_MODEL = False  # boolean - for loading - path to quantize model must be defined
+__C.TRAIN.TEST_QUANTIZE_MODEL_PATH = ''
 # input setting
 
 __C.TRAIN.BATCH_SIZE = 16  # imgs
 __C.TRAIN.IMG_SIZE = (224, 448)
-__C.TRAIN.AUGMENTATION = "T3"  # can take values T1,T2,T3, or none
+__C.TRAIN.AUGMENTATION = None  # can take values T1,T2,T3, or none
 __C.TRAIN.PRETRAINING = False
 __C.TRAIN.MULTI_CLASS_LOSS = 'cross_entropy'  # options : 'focal','cross_entropy','weighted_cross_entropy'
 
@@ -58,7 +61,7 @@ __C.TRAIN.NUM_EPOCH_LR_DECAY = 1  # epoches
 
 __C.TRAIN.WEIGHT_DECAY = 2e-4
 
-__C.TRAIN.MAX_EPOCH = 5
+__C.TRAIN.MAX_EPOCH = 1
 
 # output
 __C.TRAIN.PRINT_FREQ = 10
